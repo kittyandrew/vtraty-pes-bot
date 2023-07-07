@@ -44,12 +44,16 @@ async def init(client, logger, config, **context):
             if "tiktok.com" not in url: continue
 
             logger.info("Processing url [maybe tiktok video]: '%s' ...", url)
-            with tempfile.TemporaryDirectory() as output_dir:
-                # @TODO: This is blocking.
-                fp, user, video_id = download_by_url(url, output_dir)
-                tg_file = await event.client.upload_file(fp)
+            try:
+                with tempfile.TemporaryDirectory() as output_dir:
+                    # @TODO: This is blocking.
+                    fp, user, video_id = download_by_url(url, output_dir)
+                    tg_file = await event.client.upload_file(fp)
 
-            tt_url = f"https://www.tiktok.com/@{user}/video/{video_id}"
-            await event.reply(tt_url, file=tg_file)
-            logger.info("Uploaded video for tiktok url: '%s' ...", tt_url)
+                tt_url = f"https://www.tiktok.com/@{user}/video/{video_id}"
+                message = f"<a href='{tt_url}'>{tt_url}</a>"
+                await event.reply(message, file=tg_file, reply_markup="html")
+                logger.info("Uploaded video for tiktok url: '%s' ...", tt_url)
+            except Exception as e:
+                logger.error(e)
 
