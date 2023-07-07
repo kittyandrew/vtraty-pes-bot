@@ -1,0 +1,10 @@
+# Data folders
+/data
+/static
+# Cache
+__pycache__
+
+config.ini
+.env
+bot.session
+*.swp

@@ -1,0 +1,5 @@
+telethon-tgcrypto
+telethon
+aiohttp
+yt-dlp
+ujson

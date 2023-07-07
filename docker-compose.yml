@@ -1,0 +1,16 @@
+version: "3.7"
+
+services:
+  app:
+    container_name: vtraty-pes-bot
+    image: vtraty-pes-bot
+    build: .
+    restart: unless-stopped
+    command: --config ${CONFIG_PATH}
+    volumes:
+       - ./data:/usr/src/app/data
+
+networks:
+  default:
+    external:
+      name: caddynet
