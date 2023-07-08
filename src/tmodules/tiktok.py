@@ -3,6 +3,7 @@ from secrets import token_urlsafe
 from telethon import events
 from pprint import pprint
 from pathlib import Path
+import urllib.parse
 import tempfile
 import asyncio
 import yt_dlp
@@ -50,9 +51,9 @@ async def init(client, logger, config, **context):
                     fp, user, video_id = download_by_url(url, output_dir)
                     tg_file = await event.client.upload_file(fp)
 
-                tt_url = f"https://www.tiktok.com/@{user}/video/{video_id}"
+                tt_url = f"https://www.tiktok.com/@{urllib.parse.quote(user, safe='')}/video/{video_id}"
                 message = f"<a href='{tt_url}'>{tt_url}</a>"
-                await event.reply(message, file=tg_file, reply_markup="html")
+                await event.reply(message, file=tg_file, parse_mode="html")
                 logger.info("Uploaded video for tiktok url: '%s' ...", tt_url)
             except Exception as e:
                 logger.error(e)
