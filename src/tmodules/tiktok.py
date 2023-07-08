@@ -23,7 +23,7 @@ def download_by_url(url: str, output_dir: str) -> None:
     # Download video with youtube-dl, passing options
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         result = ydl.extract_info(url, download=True)
-        # pprint(result)
+        pprint(result)
         # ydl.download([url])
 
     return path, result["creator"], result["display_id"]
@@ -52,9 +52,10 @@ async def init(client, logger, config, **context):
                     tg_file = await event.client.upload_file(fp)
 
                 tt_url = f"https://www.tiktok.com/@{urllib.parse.quote(user, safe='')}/video/{video_id}"
-                message = f"<a href='{tt_url}'>{tt_url}</a>"
+                tt_display_url = f"https://www.tiktok.com/@{user}/video/{video_id}"
+                message = f"<a href='{tt_url}'>{tt_display_url}</a>"
                 await event.reply(message, file=tg_file, parse_mode="html")
-                logger.info("Uploaded video for tiktok url: '%s' ...", tt_url)
+                logger.info("Uploaded video for tiktok url: '%s' ...", tt_display_url)
             except Exception as e:
                 logger.error(e)
 
