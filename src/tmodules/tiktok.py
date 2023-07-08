@@ -26,7 +26,8 @@ def download_by_url(url: str, output_dir: str) -> None:
         pprint(result)
         # ydl.download([url])
 
-    return path, result["creator"], result["display_id"]
+    # @NOTE: result["creator"] is a display name and its cancer usually.
+    return path, result["uploader"], result["display_id"]
 
 
 async def init(client, logger, config, **context):
