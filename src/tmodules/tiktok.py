@@ -23,7 +23,7 @@ def download_by_url(url: str, output_dir: str) -> None:
     # Download video with youtube-dl, passing options
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         result = ydl.extract_info(url, download=True)
-        pprint(result)
+        # pprint(result)
         # ydl.download([url])
 
     # @NOTE: result["creator"] is a display name and its cancer usually.
