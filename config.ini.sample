@@ -2,6 +2,7 @@
 debug = False
 owner = @yourtaghere  # @Required
 session = bot.session
+logo = data/logo.png
 # target_id =
 # source_id =
 

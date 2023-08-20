@@ -3,3 +3,5 @@ telethon
 aiohttp
 yt-dlp
 ujson
+opencv-python
+moviepy

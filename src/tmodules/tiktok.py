@@ -26,7 +26,6 @@ def download_by_url(url: str, output_dir: str) -> None:
         # pprint(result)
         # ydl.download([url])
 
-    # @NOTE: result["creator"] is a display name and its cancer usually.
     return path, result["uploader"], result["display_id"]
 
 
