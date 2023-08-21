@@ -134,6 +134,7 @@ def watermark_image(
 
 
 async def init(client, logger, config, **context):
+    logo_admins = [int(la) for la in config.get("general", "logo_users").split(",")]
     logo_fp = config.get("general", "logo")
     owner = config.get("general", "owner")
     # target_id = config.getint("general", "target_id")
@@ -142,12 +143,14 @@ async def init(client, logger, config, **context):
 
     @client.on(events.NewMessage(pattern=r"^/watermark"))
     async def watermark_maker(event):
-        # @TODO: Load admin ids from config.
+        if (not hasattr(event, "sender_id")) or (event.sender_id not in logo_admins): return
 
-        event = await event.get_reply_message()
-        if not event:
+        new_event = await event.get_reply_message()
+        if not new_event:
             await event.reply("Couldn't retreive a reply message!")
             return
+
+        event = new_event
 
         # if not (event.photo or event.video or event.gif):
         if not (event.photo or event.video):

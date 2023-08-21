@@ -3,8 +3,9 @@ debug = False
 owner = @yourtaghere  # @Required
 session = bot.session
 logo = data/logo.png
-# target_id =
-# source_id =
+logo_users =  # @Required
+target_id =  # @Required
+target_text =  # @Required
 
 [telegram]
 api_id =  # @Required
