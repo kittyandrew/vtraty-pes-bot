@@ -120,7 +120,7 @@ def watermark_image(
     y1, y2 = y, y + logo.shape[0]
     x1, x2 = x, x + logo.shape[1]
 
-    alpha = 0.5
+    alpha = 1
     a1 = logo[:, :, 3] / 255.0
     a2 = 1.0 - a1
 
