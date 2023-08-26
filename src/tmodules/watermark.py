@@ -136,7 +136,6 @@ def watermark_image(
 async def init(client, logger, config, **context):
     logo_admins = [int(la) for la in config.get("general", "logo_users").split(",")]
     logo_fp = config.get("general", "logo")
-    owner = config.get("general", "owner")
     # target_id = config.getint("general", "target_id")
 
     logger.info("Initiating watermark maker ...")

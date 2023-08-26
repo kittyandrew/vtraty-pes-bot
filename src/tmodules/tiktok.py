@@ -30,7 +30,6 @@ def download_by_url(url: str, output_dir: str) -> None:
 
 
 async def init(client, logger, config, **context):
-    owner = config.get("general", "owner")
     # target_id = config.getint("general", "target_id")
 
     logger.info("Initiating tiktok reposter ...")
