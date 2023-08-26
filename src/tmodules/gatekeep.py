@@ -21,7 +21,7 @@ async def init(client, logger, config, **context):
             u = event.user
             text = (
                 "New user in the group\n\n"
-                f"Fullname: <code>{u.first_name} {u.first_name or ''}</code>\n"
+                f"Fullname: <code>{u.first_name} {u.last_name or ''}</code>\n"
                 f"Username: <code>{'@' + u.username if u.username else '-' * 10}</code>\n"
                 f"Id: <code>{u.id}</code>\n\n"
                 f"Phone: <code>{u.phone or '-' * 10}</code>"
