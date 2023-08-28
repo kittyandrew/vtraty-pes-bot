@@ -6,3 +6,4 @@ ujson
 opencv-python
 moviepy
 pytz
+cachetools

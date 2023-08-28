@@ -3,6 +3,7 @@ from telethon import events
 from pprint import pprint
 from time import time
 import numpy as np
+import cachetools
 import asyncio
 import os, re
 import pytz
@@ -19,6 +20,11 @@ def load_data(fp: str):
     return np.array(ids), np.array(dates)
 
 
+async def delayed_kick(event):
+    await asyncio.sleep(60 * 10)
+    await event.client.kick_participant(event.chat, event.user)
+
+
 async def init(client, logger, config, **context):
     owner = int(config.get("general", "owner"))
     timezone = pytz.timezone(config.get("general", "timezone"))
@@ -26,16 +32,21 @@ async def init(client, logger, config, **context):
     target_text = config.get("general", "target_text")
     historical_data_fp = config.get("guesstimator", "historical")
 
+    # Temporary storage that automatically cleans up references over time.
+    kick_tasks = cachetools.TTLCache(maxsize=64, ttl=60 * 15)
+
     logger.info("Initiating gatekeeper ...")
 
     @client.on(events.ChatAction(chats=[target_id]))
     async def gatekeeper(event):
         if event.user_joined:
             await asyncio.sleep(2)
-            await event.reply(target_text)
+            await event.reply(target_text, link_preview=False)
 
             assert event.user
             u = event.user
+
+            kick_tasks[u.id] = asyncio.create_task(delayed_kick(event))
 
             # Profile photo processing bit (displaying when current pfp was set).
             photo_date = "-" * 10
@@ -63,3 +74,8 @@ async def init(client, logger, config, **context):
                 f"Photo: <code>{photo_date}</code>\n"
             )
             await client.send_message(owner, text, parse_mode="html")
+
+    @client.on(events.NewMessage(chats=[target_id], func=lambda e: e.sender_id in kick_tasks))
+    async def kick_message_cancelator(event):
+        logger.info("Cancelled kick task for user %s ...", event.sender_id)
+        kick_tasks[event.sender_id].cancel()
