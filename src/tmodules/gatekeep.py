@@ -1,5 +1,6 @@
 from datetime import datetime
 from telethon import events
+from random import randint
 from pprint import pprint
 from time import time
 import numpy as np
@@ -41,7 +42,7 @@ async def init(client, logger, config, **context):
     async def gatekeeper(event):
         if event.user_joined:
             await asyncio.sleep(2)
-            await event.reply(target_text, link_preview=False)
+            await event.reply(target_text.format(random_suffix=randint(1, 9)), link_preview=False)
 
             assert event.user
             u = event.user
