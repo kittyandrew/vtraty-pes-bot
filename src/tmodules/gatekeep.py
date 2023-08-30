@@ -42,7 +42,8 @@ async def init(client, logger, config, **context):
     async def gatekeeper(event):
         if event.user_joined:
             await asyncio.sleep(2)
-            await event.reply(target_text.format(random_suffix=randint(1, 9)), link_preview=False)
+            join_text = target_text.format(random_suffix=randint(1, 9))
+            await event.reply(join_text, parse_mode="html", link_preview=False)
 
             assert event.user
             u = event.user
@@ -80,3 +81,4 @@ async def init(client, logger, config, **context):
     async def kick_message_cancelator(event):
         logger.info("Cancelled kick task for user %s ...", event.sender_id)
         kick_tasks[event.sender_id].cancel()
+        del kick_tasks[event.sender_id]
