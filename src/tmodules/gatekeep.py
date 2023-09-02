@@ -1,14 +1,20 @@
 from datetime import datetime
+from pyppeteer import launch
 from telethon import events
 from random import randint
 from pprint import pprint
+from pathlib import Path
 from time import time
 import numpy as np
 import cachetools
+import tempfile
 import asyncio
+import logging
 import os, re
 import pytz
 import json
+
+from .gk_donation_utils import track_savelifeinua_donation
 
 
 def load_data(fp: str):
@@ -21,9 +27,21 @@ def load_data(fp: str):
     return np.array(ids), np.array(dates)
 
 
-async def delayed_kick(event):
+async def delayed_kick_task(event):
     await asyncio.sleep(60 * 10)
     await event.client.kick_participant(event.chat, event.user)
+
+
+async def check_donation_task(event, browser, amount: int, logger = logging):
+    with tempfile.TemporaryDirectory() as output_dir:
+        workdir = Path(output_dir)
+        success, fp = await track_savelifeinua_donation(browser, amount, workdir, logger)
+        if not success:
+            await event.reply("<b>❌ Donation not found..</b>", parse_mode="html")
+            return
+
+        tg_file = await event.client.upload_file(fp)
+        await event.reply("<b>✅ Donation verified</b>", file=tg_file, parse_mode="html")
 
 
 async def init(client, logger, config, **context):
@@ -38,17 +56,21 @@ async def init(client, logger, config, **context):
 
     logger.info("Initiating gatekeeper ...")
 
+    context["browser"] = await launch(executablePath="/usr/bin/google-chrome-stable", headless=True, args=["--no-sandbox"], logLevel="INFO")
+
     @client.on(events.ChatAction(chats=[target_id]))
     async def gatekeeper(event):
         if event.user_joined:
             await asyncio.sleep(2)
-            join_text = target_text.format(random_suffix=randint(1, 9))
+
+            donation = randint(51, 59)
+            join_text = target_text.format(donation=donation)
             await event.reply(join_text, parse_mode="html", link_preview=False)
 
             assert event.user
             u = event.user
 
-            kick_tasks[u.id] = asyncio.create_task(delayed_kick(event))
+            kick_tasks[u.id] = asyncio.create_task(delayed_kick_task(event))
 
             # Profile photo processing bit (displaying when current pfp was set).
             photo_date = "-" * 10
@@ -75,7 +97,8 @@ async def init(client, logger, config, **context):
                 f"Phone: <code>{u.phone or '-' * 10}</code>\n"
                 f"Photo: <code>{photo_date}</code>\n"
             )
-            await client.send_message(owner, text, parse_mode="html")
+            admin_event = await client.send_message(owner, text, parse_mode="html")
+            asyncio.create_task(check_donation_task(admin_event, context["browser"], donation, logger))
 
     @client.on(events.NewMessage(chats=[target_id], func=lambda e: e.sender_id in kick_tasks))
     async def kick_message_cancelator(event):

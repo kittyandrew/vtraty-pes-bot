@@ -1,11 +1,16 @@
-FROM python:3.10-slim-buster
+FROM python:3.11
 
 WORKDIR /usr/src/app
 
-COPY requirements.txt .
 RUN apt-get update \
  && apt-get install ffmpeg libsm6 libxext6 -y \
- && pip3 install --upgrade pip wheel \
+ # Setup: https://github.com/pyppeteer/pyppeteer/issues/108#issuecomment-787150882 \
+ && curl -sSL https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
+ && echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+ && apt update -y && apt install -y google-chrome-stable
+
+COPY requirements.txt .
+RUN pip3 install --upgrade pip wheel \
  && pip3 install --no-cache-dir -r requirements.txt
 
 COPY src src
