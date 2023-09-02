@@ -42,6 +42,7 @@ async def track_savelifeinua_donation(browser, amount, workdir: Path, logger = l
             date_text_handle = await date_elements[0].getProperty("innerText")
             date_text = await date_text_handle.jsonValue()
 
+            # @TODO: Pass in 'timezone' from config.
             timezone = pytz.timezone("Europe/Kyiv")
             donation_date = datetime.strptime(date_text.strip(" \r\t\n"), "%d.%m.%Y, %H:%M").replace(tzinfo=timezone)
             now, donation_delta = datetime.now(timezone), timedelta(hours=1)

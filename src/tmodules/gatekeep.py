@@ -56,6 +56,7 @@ async def init(client, logger, config, **context):
 
     logger.info("Initiating gatekeeper ...")
 
+    # @TODO: Some logger from here needs to be reset to INFO always, because debugging is pain with it's spam.
     context["browser"] = await launch(executablePath="/usr/bin/google-chrome-stable", headless=True, args=["--no-sandbox"], logLevel="INFO")
 
     @client.on(events.ChatAction(chats=[target_id]))
