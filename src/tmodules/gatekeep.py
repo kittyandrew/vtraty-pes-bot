@@ -1,5 +1,4 @@
 from datetime import datetime
-from pyppeteer import launch
 from telethon import events
 from random import randint
 from pprint import pprint
@@ -13,8 +12,6 @@ import logging
 import os, re
 import pytz
 import json
-
-from .gk_donation_utils import track_savelifeinua_donation
 
 
 def load_data(fp: str):
@@ -32,10 +29,9 @@ async def delayed_kick_task(event):
     await event.client.kick_participant(event.chat, event.user)
 
 
-async def check_donation_task(event, browser, amount: int, logger = logging):
+async def check_donation_task(event, browser, amount: int):
     with tempfile.TemporaryDirectory() as output_dir:
-        workdir = Path(output_dir)
-        success, fp = await track_savelifeinua_donation(browser, amount, workdir, logger)
+        success, fp = await browser.track_savelifeinua_donation(amount, Path(output_dir))
         if not success:
             await event.reply("<b>❌ Donation not found..</b>", parse_mode="html")
             return
@@ -55,9 +51,6 @@ async def init(client, logger, config, **context):
     kick_tasks = cachetools.TTLCache(maxsize=64, ttl=60 * 15)
 
     logger.info("Initiating gatekeeper ...")
-
-    # @TODO: Some logger from here needs to be reset to INFO always, because debugging is pain with it's spam.
-    context["browser"] = await launch(executablePath="/usr/bin/google-chrome-stable", headless=True, args=["--no-sandbox"], logLevel="INFO")
 
     @client.on(events.ChatAction(chats=[target_id]))
     async def gatekeeper(event):
@@ -99,7 +92,7 @@ async def init(client, logger, config, **context):
                 f"Photo: <code>{photo_date}</code>\n"
             )
             admin_event = await client.send_message(owner, text, parse_mode="html")
-            asyncio.create_task(check_donation_task(admin_event, context["browser"], donation, logger))
+            asyncio.create_task(check_donation_task(admin_event, context["browser"], donation))
 
     @client.on(events.NewMessage(chats=[target_id], func=lambda e: e.sender_id in kick_tasks))
     async def kick_message_cancelator(event):

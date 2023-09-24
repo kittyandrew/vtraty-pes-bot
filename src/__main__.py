@@ -6,6 +6,7 @@ import logging
 import os
 
 from .new_account import TGSpawner, BadAccountError
+from .browser_manager import BrowserManager
 from .tmodules import init as tinit
 
 
@@ -32,7 +33,8 @@ def main(cpath: str, login: bool = True, new_acc: bool = False):
         # Main logger that will be used everywhere in the program.
         logger = logging.getLogger("beehive-bee")
 
-        context = dict(logger=logger, config=config)
+        browser = BrowserManager(logger=logger)
+        context = dict(logger=logger, config=config, browser=browser)
         context["storage"] = context  # Self-reference.
 
         session_path = config.get("general", "session")
