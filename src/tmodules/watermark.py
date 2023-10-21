@@ -142,6 +142,7 @@ async def init(client, logger, config, **context):
 
     @client.on(events.NewMessage(pattern=r"^/watermark"))
     async def watermark_maker(event):
+        if e.is_channel and not e.is_group: return
         if (not hasattr(event, "sender_id")) or (event.sender_id not in logo_admins): return
 
         new_event = await event.get_reply_message()

@@ -48,7 +48,7 @@ async def init(client, logger, config, **context):
 
     logger.info("Initiating tiktok reposter ...")
 
-    @client.on(events.NewMessage(func=lambda e: e.text and e.entities))
+    @client.on(events.NewMessage(func=lambda e: e.text and e.entities and not (e.is_channel and not e.is_group)))
     async def tiktok_reposter(event):
         for item in event.entities:
             if not isinstance(item, MessageEntityUrl): continue
