@@ -1,24 +1,25 @@
-from telethon.tl.functions.photos import UploadProfilePhotoRequest
+import asyncio
+import os
+import random
+
+import aiohttp
+import telethon
+import ujson
 from telethon.tl.functions.account import UpdateUsernameRequest
 from telethon.tl.functions.channels import JoinChannelRequest
-import telethon
-import aiohttp
-import asyncio
-import random
-import ujson
-import os
+from telethon.tl.functions.photos import UploadProfilePhotoRequest
 
 exists = lambda p: os.path.exists(p)
 
 
 class GenericCreationError(Exception):
     """Generic error"""
+
     def __init__(self, client, task_id, message="Failed to create a new account!"):
         self.client = client
         self.task_id = task_id
         self.message = message
         super().__init__(self.message)
-
 
 
 class BadAccountError(Exception):
@@ -30,9 +31,18 @@ class TGSpawner:
     DEFAULT_SMS_URL = "https://api.sms-activate.org/stubs/handler_api.php"
 
     def __init__(
-        self, tg_api_hash: str, tg_api_id: str, sms_api_key: str, sms_api_url: str = DEFAULT_SMS_URL,
-        name: str = "Guy", username: str = None, profile_picture: str = "", channels_to_join: list[str] = None,
-        path: str = None, logger = None, ecallback = None,
+        self,
+        tg_api_hash: str,
+        tg_api_id: str,
+        sms_api_key: str,
+        sms_api_url: str = DEFAULT_SMS_URL,
+        name: str = "Guy",
+        username: str = None,
+        profile_picture: str = "",
+        channels_to_join: list[str] = None,
+        path: str = None,
+        logger=None,
+        ecallback=None,
     ):
         self.tg_api_hash = tg_api_hash
         self.tg_api_id = tg_api_id
@@ -74,14 +84,15 @@ class TGSpawner:
     #       error rate is >99% (maybe some major spam-propaganda bot orgs picked it up).
     #       With 'expensive_first' boolean set to True, success rate is fairly high which makes
     #       the script usable. Might try to play with the price and look for middle price or smth.
-    async def get_best(self, offset: int = 0, ignore: list[int] = None, expensive_first = False):
+    async def get_best(self, offset: int = 0, ignore: list[int] = None, expensive_first=False):
         r = await self.get("getTopCountriesByService", {"service": "tg"})
         best_prices = sorted(list(r.values()), key=lambda o: o["price"])
         if expensive_first:
             best_prices = reversed(best_prices)
 
         def best_filter(o):
-            if ignore:  return o["country"] not in ignore
+            if ignore:
+                return o["country"] not in ignore
             return o["count"] > 100
 
         best_options = filter(best_filter, best_prices)
@@ -110,7 +121,7 @@ class TGSpawner:
 
     async def _get_new_account(self, context):
         while True:
-            best_option = await self.get_best(context["offset"], context["ignore"], expensive_first = True)
+            best_option = await self.get_best(context["offset"], context["ignore"], expensive_first=True)
             context["attempts"] += 1
 
             # Ignore country after few tries.
@@ -125,7 +136,9 @@ class TGSpawner:
                 raise RuntimeError("Not enough balance!")
 
             elif r == "NO_NUMBERS":
-                self.logger.info("Country with an ID %s ran out of numbers! Moving to the next one (more expensive).", best_option["country"])
+                self.logger.info(
+                    "Country with an ID %s ran out of numbers! Moving to the next one (more expensive).", best_option["country"]
+                )
                 context["offset"] += 1
                 continue
 
@@ -197,16 +210,14 @@ class TGSpawner:
                     result = await client(UpdateUsernameRequest(username=self.username))
                 except Exception as e:
                     self.logger.error(e)
-                    exit(1)  # @nocheckin
+                    exit(1)  # @TODO: BAD?
 
                 self.logger.info("[Task %s]: Successfully set username to '@%s'!", task_id, self.username)
 
             # If set up, update profile with a given picture.
             if self.profile_picture:
                 assert exists(self.profile_picture), "File path for PP is provided but it wasn't found!"
-                await client(UploadProfilePhotoRequest(
-                    await client.upload_file(self.profile_picture)
-                ))
+                await client(UploadProfilePhotoRequest(await client.upload_file(self.profile_picture)))
                 self.logger.info("[Task %s]: Uploaded image '%s' and set as profile picture ...", task_id, self.profile_picture)
 
             # After performing profile changes, join required channels:
@@ -247,4 +258,3 @@ class TGSpawner:
         )
         await client.start(bot_token=token)
         return client
-

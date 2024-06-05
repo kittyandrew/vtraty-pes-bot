@@ -1,13 +1,14 @@
-from telethon.tl.types import ChannelParticipantsAdmins
-from moviepy.editor import *
-from telethon import events
-from pprint import pprint
-from pathlib import Path
-from typing import Union
-import tempfile
 import asyncio
 import logging
+import tempfile
+from pathlib import Path
+from pprint import pprint
+from typing import Union
+
 import cv2
+from moviepy.editor import *
+from telethon import events
+from telethon.tl.types import ChannelParticipantsAdmins
 
 
 def watermark_video(
@@ -15,7 +16,7 @@ def watermark_video(
     filename_in: Union[str, Path],
     filename_out: Union[str, Path],
     logo_path: Union[str, Path],
-    logger = logging,
+    logger=logging,
     heavy_debug: bool = False,
 ):
     fp_in = str(workdir / filename_in)
@@ -38,22 +39,26 @@ def watermark_video(
     print(REL_LOGO_SIZE, REL_PROP, LOGO_H, LOGO_W)
     logo = cv2.resize(original_logo, (LOGO_W, LOGO_H), interpolation=cv2.INTER_CUBIC)
 
-    x, y, dx, dy = (WIDTH-LOGO_W)//2, (HEIGHT-LOGO_H)//2, WIDTH//100, HEIGHT//100
+    x, y, dx, dy = (WIDTH - LOGO_W) // 2, (HEIGHT - LOGO_H) // 2, WIDTH // 100, HEIGHT // 100
     frame_count = 0
 
     logger.info("Starting to process video '%s' ('%s') ...", fp_in, fp_out)
     while True:
         success, frame = cap.read()
-        if not success: break
+        if not success:
+            break
 
-        if (x < abs(dx)) or (x > (WIDTH  - logo.shape[1] - dx)): dx *= -1
-        if (y < abs(dy)) or (y > (HEIGHT - logo.shape[0] - dy)): dy *= -1
+        if (x < abs(dx)) or (x > (WIDTH - logo.shape[1] - dx)):
+            dx *= -1
+        if (y < abs(dy)) or (y > (HEIGHT - logo.shape[0] - dy)):
+            dy *= -1
 
         x += dx if REL_LOGO_SIZE != 1 else 0
         y += dy
 
         frame_count += 1
-        if heavy_debug: logger.debug("Frame #%-5s (x = %-4s y = %-4s) ...", frame_count, x, y)
+        if heavy_debug:
+            logger.debug("Frame #%-5s (x = %-4s y = %-4s) ...", frame_count, x, y)
 
         overlay = frame.copy()
 
@@ -65,16 +70,18 @@ def watermark_video(
         a2 = 1.0 - a1
 
         for c in range(0, 3):
-            overlay[y1:y2, x1:x2, c] = (a1 * logo[:, :, c] + a2 * overlay[y1:y2, x1:x2, c])
+            overlay[y1:y2, x1:x2, c] = a1 * logo[:, :, c] + a2 * overlay[y1:y2, x1:x2, c]
 
         new_frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
 
         out.write(new_frame)
         if heavy_debug:
             cv2.imshow("preview", new_frame)
-            if cv2.waitKey(1) & 0xFF == ord("s"): break
+            if cv2.waitKey(1) & 0xFF == ord("s"):
+                break
 
-    if heavy_debug: cv2.destroyAllWindows()
+    if heavy_debug:
+        cv2.destroyAllWindows()
     cap.release()
     out.release()
     logger.info("Done with processing video '%s' ('%s')! Cloning audio...", fp_in, fp_out)
@@ -95,7 +102,7 @@ def watermark_image(
     filename_in: Union[str, Path],
     filename_out: Union[str, Path],
     logo_path: Union[str, Path],
-    logger = logging,
+    logger=logging,
     heavy_debug: bool = True,
 ):
     fp_in = str(workdir / filename_in)
@@ -113,7 +120,7 @@ def watermark_image(
 
     # @TODO: Make optional parameter to put watermark in any corner.
     logger.info("Starting to process image '%s' ('%s') ...", fp_in, fp_out)
-    x, y = (WIDTH-LOGO_W)//2, (HEIGHT-LOGO_H)//2
+    x, y = (WIDTH - LOGO_W) // 2, (HEIGHT - LOGO_H) // 2
 
     overlay = source.copy()
 
@@ -125,7 +132,7 @@ def watermark_image(
     a2 = 1.0 - a1
 
     for c in range(0, 3):
-        overlay[y1:y2, x1:x2, c] = (a1 * logo[:, :, c] + a2 * overlay[y1:y2, x1:x2, c])
+        overlay[y1:y2, x1:x2, c] = a1 * logo[:, :, c] + a2 * overlay[y1:y2, x1:x2, c]
 
     new_image = cv2.addWeighted(overlay, alpha, source, 1 - alpha, 0)
     cv2.imwrite(fp_out, new_image)
@@ -142,8 +149,10 @@ async def init(client, logger, config, **context):
 
     @client.on(events.NewMessage(pattern=r"^/watermark"))
     async def watermark_maker(event):
-        if event.is_channel and not event.is_group: return
-        if (not hasattr(event, "sender_id")) or (event.sender_id not in logo_admins): return
+        if event.is_channel and not event.is_group:
+            return
+        if (not hasattr(event, "sender_id")) or (event.sender_id not in logo_admins):
+            return
 
         new_event = await event.get_reply_message()
         if not new_event:
@@ -158,13 +167,16 @@ async def init(client, logger, config, **context):
             return
 
         # if event.video or event.gif: pe = await event.reply("Downloading file...")
-        if event.video: pe = await event.reply("Downloading file...")
-        else: pe = None
+        if event.video:
+            pe = await event.reply("Downloading file...")
+        else:
+            pe = None
 
         with tempfile.TemporaryDirectory() as output_dir:
             workdir = Path(output_dir)
             fp_in = await event.download_media(output_dir)
-            if pe: await pe.edit("Processing file...")
+            if pe:
+                await pe.edit("Processing file...")
 
             # A mess.
             *_, full_filename = fp_in.split("/")
@@ -180,20 +192,24 @@ async def init(client, logger, config, **context):
             elif event.video:
                 force_document = True
                 fp_out = watermark_video(workdir, fp_in, output_filename, logo_fp)
-            else: raise
+            else:
+                raise
 
-            if pe: await pe.edit("Uploading file...")
+            if pe:
+                await pe.edit("Uploading file...")
             tg_file = await event.client.upload_file(fp_out)
             await event.reply(file=tg_file, force_document=force_document)
 
-        if pe: await pe.delete()
+        if pe:
+            await pe.delete()
 
 
 if __name__ == "__main__":
     debug = False
     logging.basicConfig(
         format="%(asctime)s - %(filename)s - %(levelname)s - %(message)s",
-        datefmt="%d-%b-%y %H:%M:%S", level=logging.DEBUG if debug else logging.INFO
+        datefmt="%d-%b-%y %H:%M:%S",
+        level=logging.DEBUG if debug else logging.INFO,
     )
 
     cwd = Path(".")

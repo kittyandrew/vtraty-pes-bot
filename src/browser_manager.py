@@ -1,12 +1,13 @@
+import asyncio
+import logging
+import re
 from datetime import datetime, timedelta
-from pyppeteer import launch
 from pathlib import Path
 from time import time
-import logging
-import asyncio
-import pytz
+
 import cv2
-import re
+import pytz
+from pyppeteer import launch
 
 
 class BrowserManager:
@@ -14,7 +15,7 @@ class BrowserManager:
     TABLE_ITEM = "//table[contains(@class, 'income-donation-table')]/tbody/tr"
     COMMENT_RE = re.compile(r"\(([\d\.]+) ([a-zA-Z]+)\)")
 
-    def __init__(self, max_pages: int = 2, logger = logging):
+    def __init__(self, max_pages: int = 2, logger=logging):
         self.logger = logger
 
         self.browser = None
@@ -26,10 +27,7 @@ class BrowserManager:
     async def __aenter__(self):
         async with self.browser_lock:
             if not self.browser:
-                self.browser = await launch(
-                    executablePath="/usr/bin/google-chrome-stable",
-                    headless=True, args=["--no-sandbox"]
-                )
+                self.browser = await launch(executablePath="/usr/bin/google-chrome-stable", headless=True, args=["--no-sandbox"])
                 self.logger.info("Created new browser ...")
 
         return self.browser
@@ -44,7 +42,7 @@ class BrowserManager:
     async def track_savelifeinua_donation(self, amount, workdir: Path):
         async with self as browser, self.pages_sem:
             page = await browser.newPage()
-            await page.setViewport({"height": 5000, "width": 1000}) # @TODO: explain
+            await page.setViewport({"height": 5000, "width": 1000})  # @TODO: explain
             await page.goto(self.SAVELIFEINUA_URL)
 
             self.open_pages += 1
@@ -103,13 +101,14 @@ class BrowserManager:
 
                 donation_size = float(comment_match.group(1))
                 print(donation_size, amount, donation_size == amount)
-                if donation_size != amount: continue
+                if donation_size != amount:
+                    continue
 
                 tmp_fp, output_fp = workdir / "raw_donation.png", workdir / "donation.png"
                 self.logger.info("Found donation for '%s' [%s]. Saving screenshot to '%s' ...", amount, date_text, tmp_fp)
                 rect = await element.boundingBox()
                 width, height, coeff_w_to_h = rect["width"], rect["height"], 3
-                rect["height"] =  width / coeff_w_to_h
+                rect["height"] = width / coeff_w_to_h
                 rect["y"] -= (rect["height"] - height) / 2
 
                 await page.screenshot({"path": tmp_fp, "clip": rect})
@@ -125,12 +124,12 @@ class BrowserManager:
 
 if __name__ == "__main__":
     logging.basicConfig(
-        format="%(asctime)s - %(filename)s - %(levelname)s - %(message)s",
-        datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO
+        format="%(asctime)s - %(filename)s - %(levelname)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S", level=logging.INFO
     )
-    async def main(workdir = Path(".")):
+
+    async def main(workdir=Path(".")):
         manager = BrowserManager()
         res = await manager.track_savelifeinua_donation(50, workdir)
         print("RES:", res)
-    asyncio.get_event_loop().run_until_complete(main())
 
+    asyncio.get_event_loop().run_until_complete(main())

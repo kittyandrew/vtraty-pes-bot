@@ -1,17 +1,19 @@
-from datetime import datetime
-from telethon import events
-from random import randint
-from pprint import pprint
-from pathlib import Path
-from time import time
-import numpy as np
-import cachetools
-import tempfile
 import asyncio
-import logging
-import os, re
-import pytz
 import json
+import logging
+import os
+import re
+import tempfile
+from datetime import datetime
+from pathlib import Path
+from pprint import pprint
+from random import randint
+from time import time
+
+import cachetools
+import numpy as np
+import pytz
+from telethon import events
 
 
 def load_data(fp: str):
@@ -80,7 +82,8 @@ async def init(client, logger, config, **context):
                 interp = np.poly1d(fitted)
 
                 guess, current = interp(u.id), time()
-                if guess > current: guess = current
+                if guess > current:
+                    guess = current
                 guess_dt = datetime.utcfromtimestamp(guess).astimezone(timezone).strftime("%m/%Y")
 
             text = (

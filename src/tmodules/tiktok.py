@@ -1,16 +1,17 @@
-from telethon.tl.types import MessageEntityUrl, DocumentAttributeVideo
-from secrets import token_urlsafe
-from telethon import events
-from pprint import pprint
-from pathlib import Path
-import urllib.parse
-import aiofiles
-import tempfile
-import aiohttp
 import asyncio
-import yt_dlp
-import os, re
+import os
+import re
+import tempfile
+import urllib.parse
+from pathlib import Path
+from pprint import pprint
+from secrets import token_urlsafe
 
+import aiofiles
+import aiohttp
+import yt_dlp
+from telethon import events
+from telethon.tl.types import DocumentAttributeVideo, MessageEntityUrl
 
 tt_reg = re.compile(r"tiktok.com")
 
@@ -51,11 +52,13 @@ async def init(client, logger, config, **context):
     @client.on(events.NewMessage(func=lambda e: e.text and e.entities and not (e.is_channel and not e.is_group)))
     async def tiktok_reposter(event):
         for item in event.entities:
-            if not isinstance(item, MessageEntityUrl): continue
+            if not isinstance(item, MessageEntityUrl):
+                continue
 
-            url = event.raw_text[item.offset:item.offset+item.length]
+            url = event.raw_text[item.offset : item.offset + item.length]
             # Some lame basic check.
-            if "tiktok.com" not in url: continue
+            if "tiktok.com" not in url:
+                continue
 
             logger.info("Processing url [maybe tiktok video]: '%s' ...", url)
             try:
@@ -80,4 +83,3 @@ async def init(client, logger, config, **context):
                     logger.info("Uploaded video for tiktok url: '%s' ...", tt_display_url)
             except Exception as e:
                 logger.error(e)
-
