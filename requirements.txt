@@ -4,7 +4,7 @@ aiofiles==23.2.1
 aiohttp==3.9.5
 yt-dlp==2024.7.1
 ujson==5.10.0
-opencv-python==4.10.0.82
+opencv-python
 moviepy==1.0.3
 pytz==2024.1
 cachetools==5.3.3
