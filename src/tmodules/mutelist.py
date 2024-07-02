@@ -42,6 +42,7 @@ async def init(client, logger, config, **context):
         cid = fwd_from.channel_id
         if minutes := mstore["channels"].get(str(cid)):
             delta = timedelta(minutes=int(minutes))
+            await event.reply(f"Потужний репост (мут {minutes} хв)!")
             await event.client.edit_permissions(event.chat, event.sender, delta, send_messages=False, send_media=False)
             return
 
