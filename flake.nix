@@ -25,12 +25,15 @@
             mypy
             black
             isort
+            # hmm
+            pillow
           ]);
         libs = with pkgs; [
           stdenv.cc.cc
           zlib
           glib
           libGL
+          fribidi
         ];
       in {
         devShell = pkgs.mkShell {

@@ -7,6 +7,7 @@ from typing import Union
 
 import cv2
 from moviepy.editor import *
+from PIL import Image, ImageDraw, ImageFont
 from telethon import events
 from telethon.tl.types import ChannelParticipantsAdmins
 
@@ -97,6 +98,24 @@ def watermark_video(
     return fp_out
 
 
+def get_dynamic_size_font(height: int, text: str):
+    size = 0
+    while True:
+        size += 1
+        font = ImageFont.load_default(size)
+        rect = font.getbbox(text)
+        t_hi = rect[2] - rect[0]
+        if (t_hi / height) > 0.9:
+            return font, size
+
+
+def draw_shade(draw, x, y, delta, text, fill, font, swidth, spacing):
+    draw.text((x - delta, y - delta), text, fill, font, stroke_width=swidth, spacing=spacing)
+    draw.text((x + delta, y - delta), text, fill, font, stroke_width=swidth, spacing=spacing)
+    draw.text((x - delta, y + delta), text, fill, font, stroke_width=swidth, spacing=spacing)
+    draw.text((x + delta, y + delta), text, fill, font, stroke_width=swidth, spacing=spacing)
+
+
 def watermark_image(
     workdir: Path,
     filename_in: Union[str, Path],
@@ -108,35 +127,48 @@ def watermark_image(
     fp_in = str(workdir / filename_in)
     fp_out = str(workdir / filename_out)
 
-    source = cv2.imread(fp_in, cv2.IMREAD_UNCHANGED)
-    HEIGHT, WIDTH = source.shape[:2]
+    background = Image.open(fp_in)
+    swidth = 3 if background.height > 500 else 1
+    # foreground = Image.open(logo_path)
+    # mask = foreground.copy()
+    # mask.putalpha(64)
 
-    original_logo = cv2.imread(str(logo_path), cv2.IMREAD_UNCHANGED)
-    LOGO_H, LOGO_W = original_logo.shape[:2]
-    REL_LOGO_SIZE = 2 if WIDTH > 800 else 1.5 if WIDTH > 400 else 1
-    REL_PROP = round(WIDTH / REL_LOGO_SIZE / LOGO_W, 2)
-    LOGO_H, LOGO_W = int(LOGO_H * REL_PROP), int(LOGO_W * REL_PROP)
-    logo = cv2.resize(original_logo, (LOGO_W, LOGO_H), interpolation=cv2.INTER_CUBIC)
+    # background.paste(foreground, (0, 0), mask)
+    # font = ImageFont.truetype("data/serif-regular.ttf", 40)
 
-    # @TODO: Make optional parameter to put watermark in any corner.
-    logger.info("Starting to process image '%s' ('%s') ...", fp_in, fp_out)
-    x, y = (WIDTH - LOGO_W) // 2, (HEIGHT - LOGO_H) // 2
+    text = "t.me/lost_warinua"
+    # text = "@lost_warinua"
+    font, fsize = get_dynamic_size_font(background.height, text)
+    rect = font.getbbox(text)
+    hi, wi = rect[2] - rect[0], rect[3] - rect[1] + fsize / 4
+    x, y = int((background.width - wi) / 2), int((background.height - hi) / 2)
 
-    overlay = source.copy()
+    # Drawing multiple watermarks.
+    c = 255
+    delta = wi + 25
+    margin_x = -delta
+    for _ in range(3):
+        z = 10
+        watermark = background.crop((int(x + margin_x) - z, y - z, int(x + wi + margin_x) + z, y + hi + z))
+        watermark = watermark.rotate(90, expand=1)
+        draw_watermark = ImageDraw.Draw(watermark)
+        watermark.putalpha(0)
+        draw_shade(draw_watermark, z, z, z, text, (c, c, c, 20), font, swidth, spacing=1)
+        draw_shade(draw_watermark, z, z, 9, text, (c, c, c, 35), font, swidth, spacing=1)
+        draw_shade(draw_watermark, z, z, 8, text, (c, c, c, 50), font, swidth, spacing=1)
+        draw_shade(draw_watermark, z, z, 7, text, (c, c, c, 65), font, swidth, spacing=1)
+        draw_shade(draw_watermark, z, z, 6, text, (c, c, c, 80), font, swidth, spacing=1)
+        draw_shade(draw_watermark, z, z, 5, text, (c, c, c, 95), font, swidth, spacing=1)
+        draw_shade(draw_watermark, z, z, 4, text, (c, c, c, 110), font, swidth, spacing=1)
+        draw_shade(draw_watermark, z, z, 3, text, (c, c, c, 125), font, swidth, spacing=1)
+        draw_shade(draw_watermark, z, z, 2, text, (c, c, c, 140), font, swidth, spacing=1)
+        draw_shade(draw_watermark, z, z, 1, text, (c, c, c, 155), font, swidth, spacing=1)
+        draw_watermark.text((z, z), text, (c, c, c, 250), font, stroke_width=swidth, spacing=1)
+        watermark = watermark.rotate(270, expand=1)
+        background.paste(watermark, (int(x + margin_x), y), watermark)
+        margin_x += delta
 
-    y1, y2 = y, y + logo.shape[0]
-    x1, x2 = x, x + logo.shape[1]
-
-    alpha = 1
-    a1 = logo[:, :, 3] / 255.0
-    a2 = 1.0 - a1
-
-    for c in range(0, 3):
-        overlay[y1:y2, x1:x2, c] = a1 * logo[:, :, c] + a2 * overlay[y1:y2, x1:x2, c]
-
-    new_image = cv2.addWeighted(overlay, alpha, source, 1 - alpha, 0)
-    cv2.imwrite(fp_out, new_image)
-    logger.info("Done processing image '%s' ('%s')!", fp_in, fp_out)
+    background.save(fp_out)
     return fp_out
 
 
