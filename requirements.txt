@@ -1,7 +1,7 @@
 telethon-tgcrypto==0.0.3
 Telethon==1.35.0
 aiofiles==23.2.1
-aiohttp==3.9.5
+aiohttp==3.10.2
 yt-dlp==2024.7.7
 ujson==5.10.0
 opencv-python
