@@ -59,7 +59,7 @@ async def init(client, logger, config, **context):
         if event.user_joined:
             await asyncio.sleep(2)
 
-            donation = randint(101, 109)
+            donation = randint(101, 149)
             join_text = target_text.format(donation=donation)
             await event.reply(join_text, parse_mode="html", link_preview=False)
 
