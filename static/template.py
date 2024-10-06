@@ -6,7 +6,11 @@ template = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Losses Report</title>
+    <link href='https://fonts.googleapis.com/css?family=Lexend:100,200,300,400,500,600,700,800,900' rel='stylesheet' type='text/css'/>
     <style>
+        body {
+            font-family: Lexend;
+        }
         h2 {
             text-align: center;
         }
@@ -42,7 +46,7 @@ template = """
         }
         .content-items {
             text-align: left;
-            font-weight: 200;
+            font-weight: 300;
         }
         .center-align {
             text-align: center;
@@ -58,7 +62,7 @@ template = """
 </head>
 <body>
 
-<h2> {{ date }} &nbsp; https://t.me/lost_warinua</h2>
+<h2> {{ date }} &nbsp; https://t.me/lost_warinua </h2>
 <table>
     <tr>
         <th class="numeration">№</th>
@@ -68,8 +72,8 @@ template = """
     {% for left, right in losses %}
         <tr>
             <td class="numeration">{{ loop.index }}</td>
-            <td class="content-items">{{ left }} &ensp; </td>
-            <td class="content-items">{{ right }} &ensp; </td>
+            <td class="content-items">{{ left }}&ensp;</td>
+            <td class="content-items">{{ right }}&ensp;</td>
         </tr>
     {% endfor %}
     <tr>
