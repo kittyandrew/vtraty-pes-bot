@@ -100,7 +100,7 @@ def render_table(date: str, ru_losses: list[str], ru_total: str, ua_losses: list
 
 async def generate_table(user, client, config, logger, force_new=False, **context):
     source_id = config.getint("repost", "source_id")
-    target_id = config.getint("general", "target_id")
+    target_id = context.get("send_to") or config.getint("general", "target_id")
     tz = pytz.timezone(config.get("general", "timezone"))
 
     gsheet_id = config.get("general", "gsheet_id")
@@ -172,4 +172,4 @@ async def init(client: TelegramClient, user: TelegramClient, logger, config, sto
         await event.delete()
         force_new = bool(event.pattern_match.group(1))
         logger.info(f"Processing /table command (force_new={force_new}) ...")
-        await generate_table(force_new=force_new, **storage)
+        await generate_table(force_new=force_new, send_to=event.chat_id, **storage)
