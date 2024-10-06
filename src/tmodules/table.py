@@ -1,9 +1,9 @@
+import asyncio
 import json
 from collections import defaultdict
 from datetime import datetime, timedelta
 from itertools import zip_longest
 from pathlib import Path
-from typing import Optional
 
 import imgkit
 import jinja2
@@ -164,8 +164,34 @@ async def generate_table(user, client, config, logger, force_new=False, **contex
     await client.send_file(target_id, tg_file, caption=caption)
 
 
-async def init(client: TelegramClient, user: TelegramClient, logger, config, storage, **context):
+def get_next_run_at(tz, hour: int, minute: int):
+    now = datetime.now(tz)
+    if (now.hour * 60 + now.minute) < (hour * 60 + minute):
+        return now.replace(hour=hour, minute=minute)
+    return now.replace(hour=hour, minute=minute) + timedelta(days=1)
+
+
+async def scheduled_table(config, logger, storage, **context):
+    while True:
+        tz = pytz.timezone(config.get("general", "timezone"))
+        d = datetime.strptime(config.get("general", "table_schedule_at"), "%H:%M")
+
+        delta_time = get_next_run_at(tz, d.hour, d.minute) - datetime.now(tz)
+        logger.info(f"Scheduling table generation for {delta_time} ...")
+        sleep_until_next = round(delta_time.total_seconds())
+        logger.info(f"Sleeping until table generation ({sleep_until_next} seconds) ...")
+        await asyncio.sleep(sleep_until_next)
+
+        try:
+            await generate_table(force_new=True, **storage)
+        except Exception as e:
+            logger.exception(e)
+            await asyncio.sleep(30)
+
+
+async def init(client: TelegramClient, logger, storage, **context):
     logger.info("Initiating table generator ...")
+    asyncio.create_task(scheduled_table(**storage))
 
     @client.on(events.NewMessage(pattern="^/table ?(new)?$", func=lambda e: not (e.is_channel and not e.is_group)))
     async def table_generation_handler(event):
