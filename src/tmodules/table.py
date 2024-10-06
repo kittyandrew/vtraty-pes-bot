@@ -1,0 +1,175 @@
+import json
+from collections import defaultdict
+from datetime import datetime, timedelta
+from itertools import zip_longest
+from pathlib import Path
+from typing import Optional
+
+import imgkit
+import jinja2
+import pytz
+from telethon import TelegramClient, events
+
+from ..gsheets import get_gsheet_prompt, get_vehicle_types
+from ..llm import Item, parse_messages
+
+
+def get_time_range(tz):
+    now = datetime.now(tz)
+    # Check if we passed 6 am of the current day already.
+    if (now.hour * 60 + now.minute) > (6 * 60):
+        # If so, range of interest concludes today.
+        end = now.replace(hour=6, minute=0)
+        return end - timedelta(days=1), end
+    else:
+        end = now.replace(hour=6, minute=0) - timedelta(days=1)
+        return end - timedelta(days=1), end
+
+
+def get_cache(cache_fp: Path, date: str) -> list[Item]:
+    if cache_fp.exists():
+        values = json.loads(cache_fp.read_text()).get(date, [])
+        return [Item.model_validate(r) for r in values]
+    return []
+
+
+def store_cache(cache_fp: Path, date: str, values: list[Item]):
+    cache = {}
+    if cache_fp.exists():
+        cache = json.loads(cache_fp.read_text())
+
+    cache[date] = [r.model_dump() for r in values]
+    with open(cache_fp, "w+") as f:
+        json.dump(cache, f)
+
+
+def convert_counter_into_lines(counter: dict, vehicle_types):
+    items = list(sorted(counter.values(), key=lambda o: o["name"], reverse=True))
+
+    for item in items:
+        for vtype in vehicle_types:
+            if vtype.name == "UNKNOWN":
+                item["type"] = vehicle_types.UNKNOWN
+                break
+
+            if vtype.name in item["name"]:
+                item["type"] = vtype
+                break
+
+    items = list(sorted(items, key=lambda o: o["type"]))
+
+    lines, total, damaged, destroyed, captured, olds = [], 0, 0, 0, 0, 0
+    for value in items:
+        statuses, old = [], ""
+        total += value["count"]
+        if value["destroyed"]:
+            statuses.append(f"{value['destroyed']}x DESTROYED")
+            destroyed += value["destroyed"]
+        if value["damaged"]:
+            statuses.append(f"{value['damaged']}x DAMAGED")
+            damaged += value["damaged"]
+        if value["captured"]:
+            statuses.append(f"{value['captured']}x CAPTURED")
+            captured += value["captured"]
+        if value["old"]:
+            old = f"({value['old']}x OLD)"
+            olds += value["old"]
+        lines.append(f"{value['count']}x {value['name']} ({', '.join(statuses)}) {old}")
+
+    statuses, old = [], ""
+    if destroyed:
+        statuses.append(f"{destroyed}x DESTROYED")
+    if damaged:
+        statuses.append(f"{damaged}x DAMAGED")
+    if captured:
+        statuses.append(f"{captured}x CAPTURED")
+    if olds:
+        old = f"({olds}x OLD)"
+
+    return lines, f"{total}x ({', '.join(statuses)}) {old}" if total else ""
+
+
+def render_table(date: str, ru_losses: list[str], ru_total: str, ua_losses: list[str], ua_total: str):
+    losses = list(zip_longest(ru_losses, ua_losses, fillvalue="&nbsp;"))
+    static_dir = Path(__file__).parent.parent.parent / "static"
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(static_dir))
+    template = env.get_template("template.html")
+    img = imgkit.from_string(template.render(date=date, losses=losses, ru_total=ru_total, ua_total=ua_total), False)
+    return img
+
+
+async def generate_table(user, client, config, logger, force_new=False, **context):
+    source_id = config.getint("repost", "source_id")
+    target_id = config.getint("general", "target_id")
+    tz = pytz.timezone(config.get("general", "timezone"))
+
+    gsheet_id = config.get("general", "gsheet_id")
+    gsheet_key = config.get("general", "gsheet_key")
+
+    cache_fp = Path(config.get("general", "table_cache_fp"))
+
+    start, end = get_time_range(tz)
+    date = start.date().strftime("%d.%m.%Y")
+    results: list[Item] = get_cache(cache_fp, date)
+    if force_new or not results:
+        relevant_posts = []
+        async for message in user.iter_messages(source_id):
+            if start > message.date:
+                break
+
+            if (start <= message.date < end) and message.text:
+                # Lets pre-filter archived messages for the sake of my sanity.
+                if "архив" in message.text.lower().split()[:5]:
+                    continue
+
+                relevant_posts.append(message)
+
+        if not len(relevant_posts):
+            logger.info("No relevant posts to process..")
+            return
+
+        logger.info("Grabbed %s relevant posts and processing..", len(relevant_posts))
+        extra_prompt = await get_gsheet_prompt(gsheet_id, gsheet_key)
+
+        page_size = 3
+        results = []
+        for page in range(len(relevant_posts[::page_size])):
+            page_posts = relevant_posts[page * page_size : (page + 1) * page_size]
+            results.extend(await parse_messages([m.raw_text for m in page_posts], extra_prompt))
+            # break
+
+        store_cache(cache_fp, date, results)
+
+    ru_counter = defaultdict(lambda: {"count": 0, "old": 0, "damaged": 0, "destroyed": 0, "captured": 0})
+    ua_counter = defaultdict(lambda: {"count": 0, "old": 0, "damaged": 0, "destroyed": 0, "captured": 0})
+    for item in results:
+        choice = ru_counter if item.ownership == "ru" else ua_counter
+        counter = choice[item.name.upper()]
+        counter["name"] = item.name.upper()
+        counter["count"] += 1
+        counter[item.status] += 1
+
+        if item.post_date:
+            now = datetime.now(tz).date()
+            post_date = datetime.strptime(item.post_date, "%d.%m.%Y").date()
+            counter["old"] += (now - timedelta(days=14)) > post_date
+
+    vehicle_types = await get_vehicle_types(gsheet_id, gsheet_key)
+    ru_losses, ru_total = convert_counter_into_lines(ru_counter, vehicle_types)
+    ua_losses, ua_total = convert_counter_into_lines(ua_counter, vehicle_types)
+
+    table_img = render_table(date, ru_losses, ru_total, ua_losses, ua_total)
+    tg_file = await client.upload_file(table_img, file_name=f"{date}.jpg")
+    caption = f"Згенерована таблиця за {date}\n#table #таблиця"
+    await client.send_file(target_id, tg_file, caption=caption)
+
+
+async def init(client: TelegramClient, user: TelegramClient, logger, config, storage, **context):
+    logger.info("Initiating table generator ...")
+
+    @client.on(events.NewMessage(pattern="^/table ?(new)?$", func=lambda e: not (e.is_channel and not e.is_group)))
+    async def table_generation_handler(event):
+        await event.delete()
+        force_new = bool(event.pattern_match.group(1))
+        logger.info(f"Processing /table command (force_new={force_new}) ...")
+        await generate_table(force_new=force_new, **storage)

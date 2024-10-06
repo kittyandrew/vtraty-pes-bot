@@ -8,3 +8,6 @@ config.ini
 .env
 bot.session
 *.swp
+*.jpg
+*.sh
+*.json

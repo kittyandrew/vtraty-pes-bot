@@ -13,7 +13,7 @@ from .tmodules import init as tinit
 exists = lambda p: os.path.exists(p)
 
 
-def main(cpath: str, login: bool = True, new_acc: bool = False):
+def main(cpath: str, login=False, user_login=False, new_acc: bool = False):
     loop = asyncio.get_event_loop()
 
     config = ConfigParser()
@@ -51,21 +51,35 @@ def main(cpath: str, login: bool = True, new_acc: bool = False):
             logger=logger,
         )
 
-        if new_acc:
-            await spawner.get_new_account()
-            exit(0)
-
         if login:
             bot_token = config.get("telegram", "token", fallback=None)
-            await spawner.login(token=bot_token)
+            await spawner.login(bot_token=bot_token)
             exit(0)
 
         if not exists(session_path):
             print(f"Session file '{session_path}' is missing!")
             exit(1)
 
-        client, _ = await spawner.load_account()
-        context["client"] = client
+        context["client"], _ = await spawner.load_account()
+
+        user_session_path = config.get("general", "user_session")
+        spawner = TGSpawner(
+            tg_api_hash=config.get("telegram", "api_hash"),
+            tg_api_id=config.get("telegram", "api_id"),
+            sms_api_key=config.get("simservice", "api_key", fallback=""),
+            path=user_session_path,
+            logger=logger,
+        )
+
+        if user_login:
+            await spawner.login()
+            exit(0)
+
+        if not exists(user_session_path):
+            print(f"Session file '{user_session_path}' is missing!")
+            exit(1)
+
+        context["user"], _ = await spawner.load_account()
 
         await tinit(**context)
         logging.info("Initiation completed ...")
@@ -79,12 +93,29 @@ def main(cpath: str, login: bool = True, new_acc: bool = False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="config.ini", help="Path to the config file.")
     parser.add_argument(
-        "--login", action=argparse.BooleanOptionalAction, default=False, help="Instead of starting the application, log in."
+        "--config",
+        type=str,
+        default="config.ini",
+        help="Path to the config file.",
     )
     parser.add_argument(
-        "--new", action=argparse.BooleanOptionalAction, default=False, help="Instead of starting the application, sign up."
+        "--login",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Instead of starting the application, log in.",
+    )
+    parser.add_argument(
+        "--user-login",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Instead of starting the application, log your user account in.",
+    )
+    parser.add_argument(
+        "--new",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Instead of starting the application, sign up.",
     )
     args = parser.parse_args()
 
@@ -92,4 +123,4 @@ if __name__ == "__main__":
         print(f"Config file doesn't exist [path '{args.config}']!")
         exit(1)
 
-    main(args.config, args.login, args.new)
+    main(args.config, args.login, args.user_login, args.new)

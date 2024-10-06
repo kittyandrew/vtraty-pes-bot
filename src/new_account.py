@@ -249,12 +249,12 @@ class TGSpawner:
         # TODO: Get phone number
         return client, None
 
-    async def login(self, token: str = None):
+    async def login(self, **kwargs):
         client = telethon.TelegramClient(
             session=self.path,
             api_hash=self.tg_api_hash,
             api_id=self.tg_api_id,
             # update_error_callback=self.ecallback,
         )
-        await client.start(bot_token=token)
+        await client.start(**kwargs)
         return client
