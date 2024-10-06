@@ -191,6 +191,9 @@ async def scheduled_table(config, logger, storage, **context):
 
 async def init(client: TelegramClient, logger, storage, **context):
     logger.info("Initiating table generator ...")
+    # @TODO: Add a button to confirm/uncofirm table automatically post it at
+    #   the certain other time to the main channel. Also add limited LLM
+    #   chatbot functionality with certain tools to edit table data from chat (?)
     asyncio.create_task(scheduled_table(**storage))
 
     @client.on(events.NewMessage(pattern="^/table ?(new)?$", func=lambda e: not (e.is_channel and not e.is_group)))
