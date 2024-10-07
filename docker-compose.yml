@@ -9,6 +9,8 @@ services:
     command: --config ${CONFIG_PATH}
     volumes:
        - ./data:/usr/src/app/data
+    env_file:
+       - .env
 
 networks:
   default:
