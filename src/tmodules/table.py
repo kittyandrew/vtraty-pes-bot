@@ -2,13 +2,17 @@ import asyncio
 import json
 from collections import defaultdict
 from datetime import datetime, timedelta
-from itertools import zip_longest
+from itertools import chain, zip_longest
 from pathlib import Path
+from secrets import token_hex
 
 import imgkit
 import jinja2
 import pytz
-from telethon import TelegramClient, events
+from aiocache import Cache, cached
+from telethon import Button, TelegramClient, events
+from telethon.errors import MessageNotModifiedError
+from telethon.tl.types import ChannelParticipantsAdmins, InputMessagesFilterPinned
 
 from ..gsheets import get_gsheet_prompt, get_vehicle_types
 from ..llm import Item, parse_messages
@@ -98,7 +102,7 @@ def render_table(date: str, ru_losses: list[str], ru_total: str, ua_losses: list
     return img
 
 
-async def generate_table(user, client, config, logger, force_new=False, **context):
+async def generate_table(user, client: TelegramClient, config, logger, force_new=False, **context):
     source_id = config.getint("repost", "source_id")
     target_id = context.get("send_to") or config.getint("general", "target_id")
     tz = pytz.timezone(config.get("general", "timezone"))
@@ -126,18 +130,17 @@ async def generate_table(user, client, config, logger, force_new=False, **contex
 
         if not len(relevant_posts):
             logger.info("No relevant posts to process..")
-            return
+            raise ValueError("No relevant posts to process..")
 
         logger.info("Grabbed %s relevant posts and processing..", len(relevant_posts))
         extra_prompt = await get_gsheet_prompt(gsheet_id, gsheet_key)
 
-        page_size = 3
-        results = []
+        page_size, sem, tasks = 3, asyncio.Semaphore(8), []
         for page in range(len(relevant_posts[::page_size])):
             page_posts = relevant_posts[page * page_size : (page + 1) * page_size]
-            results.extend(await parse_messages([m.raw_text for m in page_posts], extra_prompt))
-            # break
+            tasks.append(parse_messages([m.raw_text for m in page_posts], extra_prompt, sem))
 
+        results = list(chain(*(await asyncio.gather(*tasks))))
         store_cache(cache_fp, date, results)
 
     ru_counter = defaultdict(lambda: {"count": 0, "old": 0, "damaged": 0, "destroyed": 0, "captured": 0})
@@ -159,9 +162,9 @@ async def generate_table(user, client, config, logger, force_new=False, **contex
     ua_losses, ua_total = convert_counter_into_lines(ua_counter, vehicle_types)
 
     table_img = render_table(date, ru_losses, ru_total, ua_losses, ua_total)
-    tg_file = await client.upload_file(table_img, file_name=f"{date}.jpg")
+    tg_file = await client.upload_file(table_img, file_name=f"{date}-{token_hex(10)}.jpg")
     caption = f"Згенерована таблиця за {date}\n#table #таблиця"
-    await client.send_file(target_id, tg_file, caption=caption)
+    return tg_file, caption, target_id, date
 
 
 def get_next_run_at(tz, hour: int, minute: int):
@@ -171,7 +174,8 @@ def get_next_run_at(tz, hour: int, minute: int):
     return now.replace(hour=hour, minute=minute) + timedelta(days=1)
 
 
-async def scheduled_table(config, logger, storage, **context):
+async def scheduled_table(config, client, user, logger, storage, **context):
+    target_id = config.getint("general", "target_id")
     while True:
         tz = pytz.timezone(config.get("general", "timezone"))
         d = datetime.strptime(config.get("general", "table_schedule_at"), "%H:%M")
@@ -182,8 +186,19 @@ async def scheduled_table(config, logger, storage, **context):
         logger.info(f"Sleeping until table generation ({sleep_until_next} seconds) ...")
         await asyncio.sleep(sleep_until_next)
 
+        async for message in user.iter_messages(target_id, filter=InputMessagesFilterPinned):
+            if "#table #таблиця" in message.text:
+                try:
+                    await message.unpin()
+                except Exception as e:
+                    logger.exception(e)
+                    break
+
         try:
-            await generate_table(force_new=True, **storage)
+            tg_file, caption, _, date = await generate_table(force_new=True, **storage)
+            buttons = [Button.inline("Згенерувати повторно", f"v0|{target_id}|{date}")]
+            message = await client.send_file(target_id, tg_file, caption=caption, buttons=buttons)
+            await message.pin()
         except Exception as e:
             logger.exception(e)
             await asyncio.sleep(30)
@@ -191,6 +206,13 @@ async def scheduled_table(config, logger, storage, **context):
 
 async def init(client: TelegramClient, logger, storage, **context):
     logger.info("Initiating table generator ...")
+    callback_lock, callback_cache = asyncio.Lock(), Cache(ttl=60)
+
+    @cached(ttl=60 * 5)
+    async def get_channel_admins(channel_id: int):
+        admins = await client.get_participants(channel_id, filter=ChannelParticipantsAdmins)
+        return set(admin.id for admin in admins)
+
     # @TODO: Add a button to confirm/uncofirm table automatically post it at
     #   the certain other time to the main channel. Also add limited LLM
     #   chatbot functionality with certain tools to edit table data from chat (?)
@@ -201,4 +223,36 @@ async def init(client: TelegramClient, logger, storage, **context):
         await event.delete()
         force_new = bool(event.pattern_match.group(1))
         logger.info(f"Processing /table command (force_new={force_new}) ...")
-        await generate_table(force_new=force_new, send_to=event.chat_id, **storage)
+        tg_file, caption, target_id, _ = await generate_table(force_new=force_new, send_to=event.chat_id, **storage)
+        await client.send_file(target_id, tg_file, caption=caption)
+
+    @client.on(events.CallbackQuery)
+    async def callback_query_handler(event):
+        async with callback_lock:
+            _, channel_id, date = event.data.decode().split("|")
+
+            post_date, now = datetime.strptime(date, "%d.%m.%Y"), datetime.now()
+            if (now.replace(tzinfo=None) - post_date) > timedelta(days=3):
+                await event.answer("Пост занадто старий для редагування!", alert=True)
+                return
+
+            admins = await get_channel_admins(int(channel_id))
+            if event.sender_id not in admins:
+                await event.answer("You are not an admin, bucko!", alert=True)
+                return
+
+            recent = await callback_cache.get("callback_query")
+            if recent:
+                await event.answer("Почекайте хвилину перед тим як генерувати знову!", alert=True)
+                return
+
+            await callback_cache.set("callback_query", True)
+
+        await event.answer("Почекайте хвилину поки генерується таблиця!", alert=True)
+        tg_file, _, _, _ = await generate_table(force_new=True, send_to=channel_id, **storage)
+
+        try:
+            original_message = await event.get_message()
+            await original_message.edit(file=tg_file)
+        except MessageNotModifiedError as e:
+            logger.info(f"Did not modify the message (identical file): {e}!")

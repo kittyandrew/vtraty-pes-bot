@@ -1,4 +1,5 @@
-from typing import List, Literal, Optional
+from contextlib import nullcontext
+from typing import Any, List, Literal, Optional
 
 from langchain.output_parsers import PydanticOutputParser
 from langchain_openai import ChatOpenAI
@@ -22,11 +23,12 @@ class Vehicles(BaseModel):
     vehicles: List[Item] = Field(description="List of vehicle objects that were detected")
 
 
-async def parse_messages(texts: list[str], extra_prompt: str) -> list[Item]:
-    parser = PydanticOutputParser(pydantic_object=Vehicles)
-    fmt = parser.get_format_instructions()
-    system_message = VEHICLE_EXPORT_SYSTEM.format(fmt=fmt, extra=extra_prompt)
-    user_message = VEHICLE_EXPORT_USER.format("\n\n".join([f"<message>\n{t}\n</message>" for t in texts]))
-    messages = [{"role": "system", "content": system_message}, user_message]
-    result_raw = await ChatOpenAI(temperature=0, model_name="gpt-4o").ainvoke(messages)
-    return parser.parse(result_raw.content).vehicles
+async def parse_messages(texts: list[str], extra_prompt: str, sem=Optional[Any]) -> list[Item]:
+    async with sem or nullcontext():
+        parser = PydanticOutputParser(pydantic_object=Vehicles)
+        fmt = parser.get_format_instructions()
+        system_message = VEHICLE_EXPORT_SYSTEM.format(fmt=fmt, extra=extra_prompt)
+        user_message = VEHICLE_EXPORT_USER.format("\n\n".join([f"<message>\n{t}\n</message>" for t in texts]))
+        messages = [{"role": "system", "content": system_message}, user_message]
+        result_raw = await ChatOpenAI(temperature=0, model_name="gpt-4o").ainvoke(messages)
+        return parser.parse(result_raw.content).vehicles
