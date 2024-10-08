@@ -10,7 +10,7 @@ Make sure to use vehicle types from the examples, unless you are confident that 
 
 You should ignore any vehicles that have keyword "макет" before them, since those are not real vehicles.
 If you encounter "presumably" BEFORE the vehicle name, you should add PRESUMABLY to the name. However, if you find that kind of wording AFTER vehicle name (in relation to location rather than vehicle type) - ignore it.
-Ignore transport trucks unless they are of some special type, like in examples.
+Ignore transport trucks (e.g. KAMAZ-5350) unless they are of some special type, like in examples.
 
 Make sure to output the number of vehicles mentioned in the post, so if there are 2 tanks - output tank object twice.
 

@@ -148,7 +148,7 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
     for item in results:
         choice = ru_counter if item.ownership == "ru" else ua_counter
         counter = choice[item.name.upper()]
-        counter["name"] = item.name.upper()
+        counter["name"] = item.name.upper().replace(" OBR. ", " obr. ")
         counter["count"] += 1
         counter[item.status] += 1
 
