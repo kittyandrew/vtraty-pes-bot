@@ -123,7 +123,8 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
 
             if (start <= message.date < end) and message.text:
                 # Lets pre-filter archived messages for the sake of my sanity.
-                if "архив" in message.text.lower().split()[:5]:
+                msg_headers = set(word.lower().strip(".,!?/()") for word in message.text.split()[:5])
+                if "архив" in msg_headers:
                     continue
 
                 relevant_posts.append(message)
