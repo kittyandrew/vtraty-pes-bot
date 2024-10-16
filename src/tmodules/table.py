@@ -155,7 +155,10 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
 
         if item.post_date:
             now = datetime.now(tz).date()
-            post_date = datetime.strptime(item.post_date, "%d.%m.%Y").date()
+            try:
+                post_date = datetime.strptime(item.post_date, "%d.%m.%Y").date()
+            except:
+                post_date = datetime.strptime(item.post_date, "%d.%m.%y").date()
             counter["old"] += (now - timedelta(days=14)) > post_date
 
     vehicle_types = await get_vehicle_types(gsheet_id, gsheet_key)
