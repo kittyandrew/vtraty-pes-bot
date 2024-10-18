@@ -127,6 +127,10 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
                 if "архив" in msg_headers:
                     continue
 
+                # Pre-filtering for posts that should not be included (no affiliation).
+                if "принадлежность не определена" in message.text.lower():
+                    continue
+
                 relevant_posts.append(message)
 
         if not len(relevant_posts):
