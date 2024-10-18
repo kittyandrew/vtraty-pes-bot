@@ -7,7 +7,7 @@ All those messages will be in russian, but output must be in english.
 If vehicle model is not specified you should not make it up.
 For example, if tank type is unknown or it is unspecified, you should call it "unknown" with MBT type.
 Make sure to use vehicle types from the examples, unless you are confident that this is some new type, which you can infer from the text.
-You should never combine "presumably" and "unknown", because if it's unknown which specific bmp model, just "presumably bmp" is enough.
+You should never combine "presumably" and "unknown", because if it's unknown specific bmp model and its a presumably a bmp - ignore it completely.
 
 You should ignore any vehicles that have keyword "макет" before them, since those are not real vehicles.
 If you encounter "presumably" BEFORE the vehicle name, you should add PRESUMABLY to the name. However, if you find that kind of wording AFTER vehicle name (in relation to location rather than vehicle type) - ignore it.
