@@ -204,7 +204,10 @@ async def scheduled_table(config, client, user, logger, storage, **context):
 
         try:
             tg_file, caption, _, date = await generate_table(force_new=True, **storage)
-            buttons = [Button.inline("Згенерувати повторно", f"v0|{target_id}|{date}")]
+            buttons = [
+                Button.inline("Згенерувати повторно", f"v0|{target_id}|{date}"),
+                Button.url("Таблиця-словник бота", config.get("general", "table_ref_url")),
+            ]
             message = await client.send_file(target_id, tg_file, caption=caption, buttons=buttons)
             await message.pin()
         except Exception as e:
