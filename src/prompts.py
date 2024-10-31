@@ -44,7 +44,9 @@ https://t.me/OMIBr_60/560
 [{"name": "BMP-2 675-SB3KDZ IFV", "ownership": "ru", "status": "destroyed", "post_date": "19.10.2024"}, {"name": "BMP-2 675-SB3KDZ IFV", "ownership": "ru", "status": "damaged", "post_date": "20.10.2024"}]
 </output>
 </examples>
+"""
 
+VEHICLE_EXPORT_EXTRA = """
 {extra}
 
 {fmt}

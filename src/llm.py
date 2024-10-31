@@ -5,7 +5,7 @@ from langchain.output_parsers import PydanticOutputParser
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from .prompts import VEHICLE_EXPORT_SYSTEM, VEHICLE_EXPORT_USER
+from .prompts import VEHICLE_EXPORT_EXTRA, VEHICLE_EXPORT_SYSTEM, VEHICLE_EXPORT_USER
 
 
 class Item(BaseModel):
@@ -27,8 +27,8 @@ async def parse_messages(texts: list[str], extra_prompt: str, sem=Optional[Any])
     async with sem or nullcontext():
         parser = PydanticOutputParser(pydantic_object=Vehicles)
         fmt = parser.get_format_instructions()
-        system_message = VEHICLE_EXPORT_SYSTEM.format(fmt=fmt, extra=extra_prompt)
+        system_extra = VEHICLE_EXPORT_EXTRA.format(fmt=fmt, extra=extra_prompt)
         user_message = VEHICLE_EXPORT_USER.format("\n\n".join([f"<message>\n{t}\n</message>" for t in texts]))
-        messages = [{"role": "system", "content": system_message}, user_message]
+        messages = [{"role": "system", "content": VEHICLE_EXPORT_SYSTEM + system_extra}, user_message]
         result_raw = await ChatOpenAI(temperature=0, model_name="gpt-4o").ainvoke(messages)
         return parser.parse(result_raw.content).vehicles
