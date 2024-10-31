@@ -16,6 +16,35 @@ Ignore medical vehicles that are based on transport trucks.
 
 Make sure to output the number of vehicles mentioned in the post, so if there are 2 tanks - output tank object twice.
 
+<examples>
+<input>
+28.10.2024
+Уничтоженный российский предположительно МТ-ЛБ с будкой с мангалом возле н.п. Антоновка Покровского района Донецкой области.
+(47°52'25.9"N 37°22'33.4"E)
+https://t.me/odshbr79/410
+</input>
+<output>
+[{"name": "PRESUMABLY MT-LBS APC", "ownership": "ru", "status": "destroyed", "post_date": "28.11.2024"}]
+</output>
+
+<input>
+19.10.2024
+Уничтоженная российская БМП-2 675-СБ3КДЗ с мангалом возле н.п. Кругляковка Харьковской области.
+(49.538583,37.723750)
+https://t.me/oaembr77/647
+
+20.10.2024
+Брошенная российская БМП-2М 675-СБ3КДЗ с мангалом возле н.п. Ямполовка Донецкой области.
+(49.053452,38.002755)
+https://t.me/bbps_vidarr/105
+https://t.me/OMIBr_60/560
+</input>
+<output>
+
+[{"name": "BMP-2 675-SB3KDZ IFV", "ownership": "ru", "status": "destroyed", "post_date": "19.10.2024"}, {"name": "BMP-2 675-SB3KDZ IFV", "ownership": "ru", "status": "damaged", "post_date": "20.10.2024"}]
+</output>
+</examples>
+
 {extra}
 
 {fmt}
