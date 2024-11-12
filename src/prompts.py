@@ -16,6 +16,7 @@ Ignore transport trucks like "Ural 4320 equiped with the zu-32-2".
 Ignore medical vehicles that are based on transport trucks.
 
 Make sure to output the number of vehicles mentioned in the post, so if there are 2 tanks - output tank object twice.
+Make sure to always use double quotes in the names.
 
 <examples>
 <input>
