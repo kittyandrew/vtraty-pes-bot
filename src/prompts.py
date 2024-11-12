@@ -12,6 +12,7 @@ You should never combine "presumably" and "unknown", because if it's unknown spe
 You should ignore any vehicles that have keyword "макет" before them, since those are not real vehicles.
 If you encounter "presumably" BEFORE the vehicle name, you should add PRESUMABLY to the name. However, if you find that kind of wording AFTER vehicle name (in relation to location rather than vehicle type) - ignore it.
 Ignore transport trucks (e.g. KAMAZ-5350) unless they are of some special type, like in examples.
+Ignore transport trucks like "Ural 4320 equiped with the zu-32-2".
 Ignore medical vehicles that are based on transport trucks.
 
 Make sure to output the number of vehicles mentioned in the post, so if there are 2 tanks - output tank object twice.
