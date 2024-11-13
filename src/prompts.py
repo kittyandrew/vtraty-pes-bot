@@ -42,8 +42,19 @@ https://t.me/bbps_vidarr/105
 https://t.me/OMIBr_60/560
 </input>
 <output>
-
 [{"name": "BMP-2 675-SB3KDZ IFV", "ownership": "ru", "status": "destroyed", "post_date": "19.10.2024"}, {"name": "BMP-2 675-SB3KDZ IFV", "ownership": "ru", "status": "damaged", "post_date": "20.10.2024"}]
+</output>
+
+<input>
+Уничтоженный российский танк-сарай Т-80БВ рядом с н.п. Левадное Запорожской области.
+https://t.me/Pivnenko_NGU/1769
+
+Уничтоженный российский танк-сарай с КМТ-7 в н.п. Победа Донецкой области.
+(47°54'59.5"N 37°27'49.1"E)
+С закрытого канала
+</input>
+<output>
+[{"name": "T-80BV MBT", "ownership": "ru", "status": "destroyed", "post_date": null}, {"name": "UNKNOWN MBT", "ownership": "ru", "status": "destroyed", "post_date": null}]
 </output>
 </examples>
 """
