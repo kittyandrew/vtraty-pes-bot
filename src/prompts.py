@@ -26,14 +26,21 @@ Make sure to always use double quotes in the names and always respect quotes and
 https://t.me/odshbr79/410
 </input>
 <output>
-[{"name": "PRESUMABLY MT-LBS APC", "ownership": "ru", "status": "destroyed", "post_date": "28.11.2024"}]
+```json
+[
+    {
+        "name": "PRESUMABLY MT-LBS APC",
+        "ownership": "ru",
+        "status": "destroyed",
+        "post_date": "28.11.2024"
+    }
+]
+```
 </output>
 
 <input>
-19.10.2024
-Уничтоженная российская БМП-2 675-СБ3КДЗ с мангалом возле н.п. Кругляковка Харьковской области.
-(49.538583,37.723750)
-https://t.me/oaembr77/647
+Уничтоженная российская БМП-1 (БМП-2) с мангалом рядом с г. Часов Яр Донецкой области.
+https://t.me/KOTYKY_130/56
 
 20.10.2024
 Брошенная российская БМП-2М 675-СБ3КДЗ с мангалом возле н.п. Ямполовка Донецкой области.
@@ -42,7 +49,22 @@ https://t.me/bbps_vidarr/105
 https://t.me/OMIBr_60/560
 </input>
 <output>
-[{"name": "BMP-2 675-SB3KDZ IFV", "ownership": "ru", "status": "destroyed", "post_date": "19.10.2024"}, {"name": "BMP-2 675-SB3KDZ IFV", "ownership": "ru", "status": "damaged", "post_date": "20.10.2024"}]
+```json
+[
+    {
+        "name": "BMP-1 IFV",
+        "ownership": "ru",
+        "status": "destroyed",
+        "post_date": null
+    },
+    {
+        "name": "BMP-2 675-SB3KDZ IFV",
+        "ownership": "ru",
+        "status": "damaged",
+        "post_date": "20.10.2024"
+    }
+]
+```
 </output>
 
 <input>
@@ -54,7 +76,22 @@ https://t.me/Pivnenko_NGU/1769
 С закрытого канала
 </input>
 <output>
-[{"name": "T-80BV MBT", "ownership": "ru", "status": "destroyed", "post_date": null}, {"name": "UNKNOWN MBT", "ownership": "ru", "status": "destroyed", "post_date": null}]
+```json
+[
+    {
+        "name": "T-80BV MBT",
+        "ownership": "ru",
+        "status": "destroyed",
+        "post_date": null
+    },
+    {
+        "name": "UNKNOWN MBT",
+        "ownership": "ru",
+        "status": "destroyed",
+        "post_date": null
+    }
+]
+```
 </output>
 </examples>
 """
