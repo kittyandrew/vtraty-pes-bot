@@ -27,14 +27,16 @@ https://t.me/odshbr79/410
 </input>
 <output>
 ```json
-[
-    {
-        "name": "PRESUMABLY MT-LBS APC",
-        "ownership": "ru",
-        "status": "destroyed",
-        "post_date": "28.11.2024"
-    }
-]
+{
+    "vehicles": [
+        {
+            "name": "PRESUMABLY MT-LBS APC",
+            "ownership": "ru",
+            "status": "destroyed",
+            "post_date": "28.11.2024"
+        }
+    ]
+}
 ```
 </output>
 
@@ -50,20 +52,22 @@ https://t.me/OMIBr_60/560
 </input>
 <output>
 ```json
-[
-    {
-        "name": "BMP-1 IFV",
-        "ownership": "ru",
-        "status": "destroyed",
-        "post_date": null
-    },
-    {
-        "name": "BMP-2 675-SB3KDZ IFV",
-        "ownership": "ru",
-        "status": "damaged",
-        "post_date": "20.10.2024"
-    }
-]
+{
+    "vehicles": [
+        {
+            "name": "BMP-1 IFV",
+            "ownership": "ru",
+            "status": "destroyed",
+            "post_date": null
+        },
+        {
+            "name": "BMP-2 675-SB3KDZ IFV",
+            "ownership": "ru",
+            "status": "damaged",
+            "post_date": "20.10.2024"
+        }
+    ]
+}
 ```
 </output>
 
@@ -77,20 +81,22 @@ https://t.me/Pivnenko_NGU/1769
 </input>
 <output>
 ```json
-[
-    {
-        "name": "T-80BV MBT",
-        "ownership": "ru",
-        "status": "destroyed",
-        "post_date": null
-    },
-    {
-        "name": "UNKNOWN MBT",
-        "ownership": "ru",
-        "status": "destroyed",
-        "post_date": null
-    }
-]
+{
+    "vehicles": [
+        {
+            "name": "T-80BV MBT",
+            "ownership": "ru",
+            "status": "destroyed",
+            "post_date": null
+        },
+        {
+            "name": "UNKNOWN MBT",
+            "ownership": "ru",
+            "status": "destroyed",
+            "post_date": null
+        }
+    ]
+}
 ```
 </output>
 </examples>
