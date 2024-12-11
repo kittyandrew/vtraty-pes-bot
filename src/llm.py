@@ -15,7 +15,7 @@ class Item(BaseModel):
         description="Status of the equipment (damaged if it was left behind)"
     )
     post_date: Optional[str] = Field(
-        description="If provided, the format is day.month.year (e.g. 20.4.2024) or season name with year, defaulting to the first date of certain month (rules: winter -> 01.01, spring -> 01.03, summer -> 01.06, fall -> 01.09)"
+        description="If provided, the format is day.month.year (e.g. 20.4.2024) or season name with year, defaulting to the first date of certain month (rules: winter -> 01.01, spring -> 01.03, summer -> 01.06, fall -> 01.09). If only the year was provided, assume first date of december."
     )
 
 
