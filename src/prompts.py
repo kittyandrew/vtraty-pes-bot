@@ -99,6 +99,24 @@ https://t.me/Pivnenko_NGU/1769
 }
 ```
 </output>
+
+<input>
+Уничтоженная российская БРМ-1К (БМП-1) с мангалом рядом с н.п. Берестовое Харьковской области.
+(49°32'16.9"N 37°52'17.3"E)
+https://t.me/privet_iz_doma152/12352
+</input>
+<output>
+{
+    "vehicles": [
+        {
+            "name": "BRM-1K IFV",
+            "ownership": "ru",
+            "status": "destroyed",
+            "post_date": null
+        }
+    ]
+}
+</output>
 </examples>
 """
 
