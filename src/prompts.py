@@ -17,6 +17,7 @@ Ignore medical vehicles that are based on transport trucks.
 
 Make sure to output the number of vehicles mentioned in the post, so if there are 2 tanks - output tank object twice.
 Make sure to always use double quotes in the names and always respect quotes and dashes in names from references!
+Make sure to always properly escape quotes for the json generation, you MUST output valid json!
 
 <examples>
 <input>
@@ -120,7 +121,7 @@ https://t.me/privet_iz_doma152/12352
 {
     "vehicles": [
         {
-            "name": "EW RP-377LA "LORANDIT" CHASSIS UAZ 452",
+            "name": "EW RP-377LA \"LORANDIT\" CHASSIS UAZ 452",
             "ownership": "ru",
             "status": "destroyed",
             "post_date": "10.11.2024"
