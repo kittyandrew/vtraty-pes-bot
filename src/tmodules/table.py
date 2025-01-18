@@ -44,7 +44,7 @@ def store_cache(cache_fp: Path, date: str, values: list[Item]):
 
     cache[date] = [r.model_dump() for r in values]
     with open(cache_fp, "w+") as f:
-        json.dump(cache, f)
+        json.dump(cache, f, indent=4)
 
 
 def convert_counter_into_lines(counter: dict, vehicle_types):
