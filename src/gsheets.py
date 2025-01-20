@@ -48,5 +48,6 @@ async def get_vehicle_types(spreadsheet_id, api_key):
                 return list(l.strip() for l in itertools.chain(*data["values"]))
 
     type_strings = await _get("C2:C")
-    type_enum = CustomEnum("VehicleTypes", type_strings + ["UNKNOWN"])
-    return type_enum
+    if any(s.lower() == "unknown" for s in type_strings):
+        return CustomEnum("VehicleTypes", type_strings)
+    return CustomEnum("VehicleTypes", type_strings + ["UNKNOWN"])
