@@ -148,6 +148,9 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
         results = list(chain(*(await asyncio.gather(*tasks))))
         store_cache(cache_fp, date, results)
 
+    # Filter out results with no ownership specified.
+    results = [o for o in results if o.ownership]
+
     ru_counter = defaultdict(lambda: {"count": 0, "old": 0, "damaged": 0, "destroyed": 0, "captured": 0})
     ua_counter = defaultdict(lambda: {"count": 0, "old": 0, "damaged": 0, "destroyed": 0, "captured": 0})
     for item in results:

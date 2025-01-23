@@ -9,8 +9,12 @@ from .prompts import VEHICLE_EXPORT_EXTRA, VEHICLE_EXPORT_SYSTEM, VEHICLE_EXPORT
 
 
 class Item(BaseModel):
-    name: str = Field(description="Full english vehicle name, including type (T72M1 MBT, M113 APC etc), with any quotes properly escaped.")
-    ownership: Literal["ru", "ua"] = Field(description="Who equipment belonged to originally")
+    name: str = Field(
+        description="Full english vehicle name, including type (T72M1 MBT, M113 APC etc), with any quotes properly escaped."
+    )
+    ownership: Optional[Literal["ru", "ua"]] = Field(
+        description="Who equipment belonged to originally (required, unless neither is specified)"
+    )
     status: Literal["damaged", "destroyed", "captured"] = Field(
         description="Status of the equipment (damaged if it was left behind)"
     )
