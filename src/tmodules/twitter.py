@@ -1,6 +1,5 @@
 import asyncio
 import tempfile
-import urllib.parse
 from pathlib import Path
 from secrets import token_urlsafe
 from typing import Optional
@@ -16,7 +15,7 @@ def download_by_url(url: str, output_dir: str):
     path = Path(output_dir) / f"{token_urlsafe(16)}.mp4"
     with yt_dlp.YoutubeDL({"outtmpl": str(path), "progress_hooks": [lambda _: None]}) as ydl:
         result = ydl.extract_info(url, download=True)
-    return result, path, result["uploader"], result["display_id"]
+    return result, path
 
 
 async def download_thumb(info, output_dir: str) -> Optional[Path]:
@@ -33,31 +32,33 @@ async def download_thumb(info, output_dir: str) -> Optional[Path]:
 
 
 async def init(client, logger, config, **context):
-    logger.info("Initiating tiktok reposter ...")
+    logger.info("Initiating twitter reposter ...")
 
     @client.on(events.NewMessage(func=lambda e: e.text and e.entities and not (e.is_channel and not e.is_group)))
-    async def tiktok_reposter(event):
-        # @TODO: Enable later, maybe someone actually wants this to work as is (?)
-        # if event.file:
-        #     logger.warning("Skipping potential tiktok link, cuz its already has file: %s", event)
-        #     return
+    async def twitter_reposter(event):
+        if event.file:
+            logger.warning("Skipping potential twitter link, cuz its already has file: %s", event)
+            return
 
         for item in event.entities:
             if not isinstance(item, MessageEntityUrl):
                 continue
 
             url = event.raw_text[item.offset : item.offset + item.length]
-            if "tiktok.com" not in url:
+            if "x.com" not in url:
                 continue
 
-            logger.info("Processing url [maybe tiktok video]: '%s' ...", url)
+            logger.info("Processing url [maybe x.com video]: '%s' ...", url)
             try:
                 with tempfile.TemporaryDirectory() as output_dir:
-                    info, fp, user, video_id = await asyncio.to_thread(download_by_url, url, output_dir)
-                    if info["resolution"] == "audio only":
-                        await event.reply("Tiktok presentation detected - can't process!", parse_mode="html")
-                        logger.info("Tiktok presentation detected, can't process! (url: '%s') ...", url)
-                        return
+                    try:
+                        info, fp = await asyncio.to_thread(download_by_url, url, output_dir)
+                        assert info is not None, f"Something real broken (info={info})!"
+                        assert info.get("duration") is not None, f"GIF.. do we support gifs?"
+                    except (yt_dlp.utils.DownloadError, AssertionError) as e:
+                        logger.warning("[%s]: Failed downloading ('%s'), just replacing url ...", url, e)
+                        await event.reply(url.replace("x.com/", "fxtwitter.com/"))
+                        continue
 
                     attributes = DocumentAttributeVideo(info["duration"], info["width"], info["height"])
                     thumb = await download_thumb(info, output_dir)
@@ -65,10 +66,16 @@ async def init(client, logger, config, **context):
 
                     tg_file = await event.client.upload_file(fp)
 
-                    tt_url = f"https://www.tiktok.com/@{urllib.parse.quote(user, safe='')}/video/{video_id}"
-                    tt_display_url = f"https://www.tiktok.com/@{user}/video/{video_id}"
-                    message = f"<a href='{tt_url}'>{tt_display_url}</a>"
+                    # @TODO: We currently skip original description if it's a sub-tweet,
+                    #  instead this should be a double quote or sub-quote somehow.
+                    if description := info.get("description"):
+                        if (words := description.split(" "))[-1].startswith("https://t.co/"):
+                            description = " ".join(words[:-1]).replace("  ", "\n\n")
+                        message = f'<blockquote>{description}</blockquote>\n\n- <a href="{url}">{info['uploader']}</a>'
+                    else:
+                        message = f'- <a href="{url}">{info['uploader']}</a>'
+
                     await event.reply(message, file=tg_file, attributes=[attributes], thumb=thumb, parse_mode="html")
-                    logger.info("Uploaded video for tiktok url: '%s' ...", tt_display_url)
+                    logger.info("Uploaded video for x.com url: '%s' ...", url)
             except Exception as e:
-                logger.error(e)
+                logger.exception(e)

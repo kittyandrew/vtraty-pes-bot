@@ -58,6 +58,12 @@
               fi
             fi
 
+            pyfmt() {
+              black --line-length=131 $@
+              isort --line-length=131 $@
+              # flake8 $@
+            }
+
             echo -e "\nWelcome to the shell :)\n"
           '';
         };
