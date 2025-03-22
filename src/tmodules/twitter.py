@@ -1,5 +1,6 @@
 import asyncio
 import tempfile
+import urllib.parse
 from pathlib import Path
 from secrets import token_urlsafe
 from typing import Optional
@@ -9,6 +10,13 @@ import aiohttp
 import yt_dlp
 from telethon import events
 from telethon.tl.types import DocumentAttributeVideo, MessageEntityUrl
+
+
+def validate_url(source: str, domains: list[str]):
+    if not source.startswith("http"):
+        source = f"http://{source}"
+    parsed = urllib.parse.urlparse(source)
+    return parsed.hostname and any(parsed.hostname == domain for domain in domains)
 
 
 def download_by_url(url: str, output_dir: str):
@@ -45,7 +53,7 @@ async def init(client, logger, config, **context):
                 continue
 
             url = event.raw_text[item.offset : item.offset + item.length]
-            if "x.com" not in url:
+            if not validate_url(url, ["x.com"]):
                 continue
 
             logger.info("Processing url [maybe x.com video]: '%s' ...", url)
