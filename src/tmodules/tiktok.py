@@ -55,7 +55,7 @@ async def init(client, logger, config, **context):
 
             url = event.raw_text[item.offset : item.offset + item.length]
 
-            if not validate_url(url, ["tiktok.com"]):
+            if not validate_url(url, ["www.tiktok.com", "tiktok.com"]):
                 continue
 
             logger.info("Processing url [maybe tiktok video]: '%s' ...", url)
