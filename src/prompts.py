@@ -130,6 +130,26 @@ https://t.me/privet_iz_doma152/12352
 }
 ```
 </output>
+
+<input>
+17.03.25
+Уничтоженный танк Т-72ЕА (Т-72М1)  ВСУ с мангалом в Курской области.
+Источник
+</input>
+<output>
+```json
+{
+    "vehicles": [
+        {
+            "name": "T-72EA MBT",
+            "ownership": "ua",
+            "status": "destroyed",
+            "post_date": "17.03.2025"
+        }
+    ]
+}
+```
+</output>
 </examples>
 """
 
