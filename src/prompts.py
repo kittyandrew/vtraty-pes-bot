@@ -17,7 +17,7 @@ Ignore medical vehicles that are based on transport trucks.
 
 Make sure to output the number of vehicles mentioned in the post, so if there are 2 tanks - output tank object twice.
 Make sure to always use double quotes in the names and always respect quotes and dashes in names from references!
-Make sure to always properly escape quotes for the json generation, you MUST output valid json!
+Make sure to always properly escape double-quotes in strings, you MUST output valid json!
 
 <examples>
 <input>
