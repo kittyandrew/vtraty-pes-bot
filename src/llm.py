@@ -34,5 +34,5 @@ async def parse_messages(texts: list[str], extra_prompt: str, sem=Optional[Any])
         system_extra = VEHICLE_EXPORT_EXTRA.format(fmt=fmt, extra=extra_prompt)
         user_message = VEHICLE_EXPORT_USER.format("\n\n".join([f"<message>\n{t}\n</message>" for t in texts]))
         messages = [{"role": "system", "content": VEHICLE_EXPORT_SYSTEM + system_extra}, user_message]
-        result_raw = await ChatOpenAI(model="o3-mini").ainvoke(messages)
+        result_raw = await ChatOpenAI(model="gpt-4o").ainvoke(messages)
         return parser.parse(result_raw.content).vehicles
