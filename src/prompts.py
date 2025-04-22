@@ -154,6 +154,8 @@ https://t.me/privet_iz_doma152/12352
 """
 
 VEHICLE_EXPORT_EXTRA = """
+Note that today is {date}. Do not attribute dates to the future.
+
 {extra}
 
 {fmt}

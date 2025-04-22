@@ -1,5 +1,7 @@
+import datetime
 from contextlib import nullcontext
 from typing import Any, List, Literal, Optional
+
 from langchain.output_parsers import PydanticOutputParser
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
@@ -29,8 +31,8 @@ class Vehicles(BaseModel):
 async def parse_messages(texts: list[str], extra_prompt: str, sem=Optional[Any]) -> list[Item]:
     async with sem or nullcontext():
         parser = PydanticOutputParser(pydantic_object=Vehicles)
-        fmt = parser.get_format_instructions()
-        system_extra = VEHICLE_EXPORT_EXTRA.format(fmt=fmt, extra=extra_prompt)
+        fmt, date = parser.get_format_instructions(), datetime.datetime.now().strftime("%B %d, %Y")
+        system_extra = VEHICLE_EXPORT_EXTRA.format(fmt=fmt, extra=extra_prompt, date=date)
         user_message = VEHICLE_EXPORT_USER.format("\n\n".join([f"<message>\n{t}\n</message>" for t in texts]))
         messages = [{"role": "system", "content": VEHICLE_EXPORT_SYSTEM + system_extra}, user_message]
         result_raw = await ChatOpenAI(model="gpt-4o").ainvoke(messages)
