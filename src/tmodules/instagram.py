@@ -16,12 +16,17 @@ def validate_url(source: str, domains: list[str]):
     if not source.startswith("http"):
         source = f"http://{source}"
     parsed = urllib.parse.urlparse(source)
-    return parsed.hostname and any(parsed.hostname == domain for domain in domains) and parsed.path.startswith("/reel/")
+    return parsed.hostname and (
+        ((parsed.hostname in domains) and ("reel" in parsed.path))
+        or (parsed.hostname in ["youtube.com", "www.youtube.com"] and parsed.path.startswith("/shorts/"))  # KEK
+    )
 
 
 def download_by_url(url: str, output_dir: str):
     path = Path(output_dir) / f"{token_urlsafe(16)}.mp4"
-    with yt_dlp.YoutubeDL({"outtmpl": str(path), "progress_hooks": [lambda _: None]}) as ydl:
+    with yt_dlp.YoutubeDL(
+        {"outtmpl": str(path), "progress_hooks": [lambda _: None], "format_sort": ["res", "vcodec:avc", "acodec:aac"]}
+    ) as ydl:
         result = ydl.extract_info(url, download=True)
     return result, path
 

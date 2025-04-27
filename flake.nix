@@ -38,6 +38,7 @@
             # Installing our custom python with pre-installed packages.
             pythonCustom
             pkgs.wkhtmltopdf
+            pkgs.ffmpeg
           ];
           # Upon installation we need to do additional configurations.
           shellHook = ''

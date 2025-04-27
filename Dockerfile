@@ -7,7 +7,7 @@ RUN apt-get update \
  # Setup: https://github.com/pyppeteer/pyppeteer/issues/108#issuecomment-787150882 \
  && curl -sSL https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
  && echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
- && apt update -y && apt install -y google-chrome-stable
+ && apt update -y && apt install -y google-chrome-stable ffmpeg
 
 COPY requirements.txt .
 RUN pip3 install --upgrade pip wheel \
