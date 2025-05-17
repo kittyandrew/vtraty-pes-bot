@@ -15,6 +15,8 @@ Ignore transport trucks (e.g. KAMAZ-5350) unless they are of some special type, 
 Ignore transport trucks like "Ural 4320 equiped with the zu-32-2".
 Ignore medical vehicles that are based on transport trucks.
 
+You must ignore all UAVs, we do not count nor parse them.
+
 If there are multiple vehicle types in brackets like (), those are multiple guess about what the vehicle is, therefore you only pick the first option, ignore the brackets.
 For example, "Уничтоженный российский МТ-ЛБ (2С1 Гвоздика) где-то на фронте." should only count as a single MT-LB.
 
