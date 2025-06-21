@@ -180,7 +180,7 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
     tg_files = [await client.upload_file(table_img, file_name=f"{date}-{token_hex(10)}.jpg")]
     caption = f"Згенерована таблиця за {date}\n#table #таблиця"
 
-    if datetime.now(tz).weekday() == 3:  # Monday summary table (after daily table)
+    if datetime.now(tz).weekday() == 0:  # Monday summary table (after daily table)
         total_ru_counter, total_ua_counter = init_counter(), init_counter()
 
         start_date = end_date = end - timedelta(days=(days := 7) + 1)
