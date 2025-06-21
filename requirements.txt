@@ -2,7 +2,8 @@ telethon-tgcrypto==0.0.3
 Telethon==1.35.0
 aiofiles==23.2.1
 aiohttp==3.9.5
-yt-dlp==2025.3.31
+yt-dlp==2025.6.9
+bgutil-ytdlp-pot-provider==1.1.0
 ujson==5.10.0
 opencv-python
 moviepy==1.0.3
