@@ -17,6 +17,8 @@ from telethon.tl.types import ChannelParticipantsAdmins, InputMessagesFilterPinn
 from ..gsheets import get_gsheet_prompt, get_vehicle_types
 from ..llm import Item, parse_messages
 
+init_counter = lambda: defaultdict(lambda: {"count": 0, "old": 0, "damaged": 0, "destroyed": 0, "captured": 0})
+
 
 def get_time_range(tz):
     now = datetime.now(tz)
@@ -148,34 +150,52 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
         results = list(chain(*(await asyncio.gather(*tasks))))
         store_cache(cache_fp, date, results)
 
-    # Filter out results with no ownership specified.
-    results = [o for o in results if o.ownership]
+    def process_item(counter: dict, item: Item, now: datetime):
+        if not item.ownership:
+            return
 
-    ru_counter = defaultdict(lambda: {"count": 0, "old": 0, "damaged": 0, "destroyed": 0, "captured": 0})
-    ua_counter = defaultdict(lambda: {"count": 0, "old": 0, "damaged": 0, "destroyed": 0, "captured": 0})
-    for item in results:
-        choice = ru_counter if item.ownership == "ru" else ua_counter
-        counter = choice[item.name.upper()]
+        counter = counter[item.name.upper()]
         counter["name"] = item.name.upper().replace(" OBR. ", " obr. ")
         counter["count"] += 1
         counter[item.status] += 1
 
-        if item.post_date:
-            now = datetime.now(tz).date()
-            try:
-                post_date = datetime.strptime(item.post_date, "%d.%m.%Y").date()
-            except:
-                post_date = datetime.strptime(item.post_date, "%d.%m.%y").date()
-            counter["old"] += (now - timedelta(days=14)) > post_date
+        if not item.post_date:
+            return
+
+        try:
+            post_date = datetime.strptime(item.post_date, "%d.%m.%Y").date()
+        except:
+            post_date = datetime.strptime(item.post_date, "%d.%m.%y").date()
+        counter["old"] += (now.date() - timedelta(days=14)) > post_date
+
+    ru_counter, ua_counter = init_counter(), init_counter()
+    for item in results:
+        process_item(ru_counter if item.ownership == "ru" else ua_counter, item, start)
 
     vehicle_types = await get_vehicle_types(gsheet_id, gsheet_key)
     ru_losses, ru_total = convert_counter_into_lines(ru_counter, vehicle_types)
     ua_losses, ua_total = convert_counter_into_lines(ua_counter, vehicle_types)
 
     table_img = render_table(date, ru_losses, ru_total, ua_losses, ua_total)
-    tg_file = await client.upload_file(table_img, file_name=f"{date}-{token_hex(10)}.jpg")
+    tg_files = [await client.upload_file(table_img, file_name=f"{date}-{token_hex(10)}.jpg")]
     caption = f"Згенерована таблиця за {date}\n#table #таблиця"
-    return tg_file, caption, target_id, date
+
+    if datetime.now(tz).weekday() == 3:  # Monday summary table (after daily table)
+        total_ru_counter, total_ua_counter = init_counter(), init_counter()
+
+        start_date = end_date = end - timedelta(days=(days := 7) + 1)
+        for _ in range(days):
+            start_date += timedelta(days=1)
+            for item in get_cache(cache_fp, start_date.date().strftime("%d.%m.%Y")):
+                process_item(total_ru_counter if item.ownership == "ru" else total_ua_counter, item, start_date)
+
+        t_ru_losses, t_ru_total = convert_counter_into_lines(total_ru_counter, vehicle_types)
+        t_ua_losses, t_ua_total = convert_counter_into_lines(total_ua_counter, vehicle_types)
+        summary_title = f"{end_date.strftime('%d.%m.%Y')} - {start_date.strftime('%d.%m.%Y')}"
+
+        monday_img = render_table(summary_title, t_ru_losses, t_ru_total, t_ua_losses, t_ua_total)
+        tg_files.insert(0, await client.upload_file(monday_img, file_name=f"monday-summary-{date}-{token_hex(8)}.jpg"))
+    return tg_files, caption, target_id, date
 
 
 def get_next_run_at(tz, hour: int, minute: int):
@@ -212,7 +232,7 @@ async def scheduled_table(config, client, user, logger, storage, **context):
                 [Button.url("Таблиця-словник бота", config.get("general", "table_ref_url"))],
             ]
             message = await client.send_file(target_id, tg_file, caption=caption, buttons=buttons)
-            await message.pin()
+            await (message[0] if isinstance(message, list) else message).pin()
         except Exception as e:
             logger.exception(e)
             await asyncio.sleep(30)
@@ -237,8 +257,8 @@ async def init(client: TelegramClient, logger, storage, **context):
         await event.delete()
         force_new = bool(event.pattern_match.group(1))
         logger.info(f"Processing /table command (force_new={force_new}) ...")
-        tg_file, caption, target_id, _ = await generate_table(force_new=force_new, send_to=event.chat_id, **storage)
-        await client.send_file(target_id, tg_file, caption=caption)
+        tg_files, caption, target_id, _ = await generate_table(force_new=force_new, send_to=event.chat_id, **storage)
+        await client.send_file(target_id, tg_files, caption=caption)
 
     @client.on(events.CallbackQuery)
     async def callback_query_handler(event):
@@ -263,10 +283,10 @@ async def init(client: TelegramClient, logger, storage, **context):
             await callback_cache.set("callback_query", True)
 
         await event.answer("Почекайте хвилину поки генерується таблиця!", alert=True)
-        tg_file, _, _, _ = await generate_table(force_new=True, send_to=channel_id, **storage)
+        tg_files, _, _, _ = await generate_table(force_new=True, send_to=channel_id, **storage)
 
         try:
             original_message = await event.get_message()
-            await original_message.edit(file=tg_file)
+            await original_message.edit(file=tg_files)
         except MessageNotModifiedError as e:
             logger.info(f"Did not modify the message (identical file): {e}!")
