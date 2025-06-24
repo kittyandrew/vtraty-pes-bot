@@ -14,6 +14,7 @@ from telethon.tl.types import DocumentAttributeVideo, MessageEntityUrl
 
 MATCH_RULES = {
     "instagram": {"domains": ["instagram.com", "facebook.com"], "path": lambda p: "/reel/" in str(p)},
+    "facebook": {"domains": ["facebook.com"], "path": lambda p: "/share/v/" in str(p)},
     "youtube": {"domains": ["youtube.com"], "path": lambda p: str(p).startswith("/shorts/")},
     "twitter": {"domains": ["x.com"], "path": lambda p: len(str(p).strip("/").split("/")) > 1},
     "tiktok": {"domains": ["tiktok.com", "vm.tiktok.com"], "path": lambda p: bool(p)},
