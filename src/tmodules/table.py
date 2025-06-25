@@ -177,10 +177,10 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
     ua_losses, ua_total = convert_counter_into_lines(ua_counter, vehicle_types)
 
     table_img = render_table(date, ru_losses, ru_total, ua_losses, ua_total)
-    tg_files = [await client.upload_file(table_img, file_name=f"{date}-{token_hex(10)}.jpg")]
+    tg_file = await client.upload_file(table_img, file_name=f"{date}-{token_hex(10)}.jpg")
     caption = f"Згенерована таблиця за {date}\n#table #таблиця"
 
-    if datetime.now(tz).weekday() == 0:  # Monday summary table (after daily table)
+    if False:  # datetime.now(tz).weekday() == 0:  # Monday summary table (after daily table)
         total_ru_counter, total_ua_counter = init_counter(), init_counter()
 
         start_date = end_date = end - timedelta(days=(days := 7) + 1)
@@ -195,7 +195,7 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
 
         monday_img = render_table(summary_title, t_ru_losses, t_ru_total, t_ua_losses, t_ua_total)
         tg_files.insert(0, await client.upload_file(monday_img, file_name=f"monday-summary-{date}-{token_hex(8)}.jpg"))
-    return tg_files, caption, target_id, date
+    return tg_file, caption, target_id, date
 
 
 def get_next_run_at(tz, hour: int, minute: int):
@@ -257,8 +257,8 @@ async def init(client: TelegramClient, logger, storage, **context):
         await event.delete()
         force_new = bool(event.pattern_match.group(1))
         logger.info(f"Processing /table command (force_new={force_new}) ...")
-        tg_files, caption, target_id, _ = await generate_table(force_new=force_new, send_to=event.chat_id, **storage)
-        await client.send_file(target_id, tg_files, caption=caption)
+        tg_file, caption, target_id, _ = await generate_table(force_new=force_new, send_to=event.chat_id, **storage)
+        await client.send_file(target_id, tg_file, caption=caption)
 
     @client.on(events.CallbackQuery)
     async def callback_query_handler(event):
@@ -283,10 +283,10 @@ async def init(client: TelegramClient, logger, storage, **context):
             await callback_cache.set("callback_query", True)
 
         await event.answer("Почекайте хвилину поки генерується таблиця!", alert=True)
-        tg_files, _, _, _ = await generate_table(force_new=True, send_to=channel_id, **storage)
+        tg_file, _, _, _ = await generate_table(force_new=True, send_to=channel_id, **storage)
 
         try:
             original_message = await event.get_message()
-            await original_message.edit(file=tg_files)
+            await original_message.edit(file=tg_file)
         except MessageNotModifiedError as e:
             logger.info(f"Did not modify the message (identical file): {e}!")
