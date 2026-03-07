@@ -9,6 +9,7 @@ from typing import Optional
 
 import aiofiles
 import aiohttp
+import sentry_sdk
 import yt_dlp
 from telethon import events
 from telethon.tl.types import DocumentAttributeVideo, MessageEntityUrl
@@ -74,6 +75,7 @@ async def init(client, logger, config, **context):
                 continue
 
             logger.info("Processing url [detected shortform video]: '%s' ...", url)
+            sentry_sdk.add_breadcrumb(category="downloader", message=f"Downloading {rule} video", data={"url": url})
             with tempfile.TemporaryDirectory() as out_dir:
                 try:
                     fp, info = await asyncio.to_thread(download_by_url, url, out_dir)

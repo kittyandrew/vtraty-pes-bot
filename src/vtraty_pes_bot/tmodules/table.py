@@ -10,6 +10,7 @@ from secrets import token_hex
 import imgkit
 import jinja2
 import pytz
+import sentry_sdk
 from aiocache import Cache, cached
 from markupsafe import Markup
 from telethon import Button, TelegramClient, events
@@ -203,6 +204,7 @@ async def generate_table(user, client: TelegramClient, config, logger, force_new
             logger.warning("No relevant posts to process..")
 
         logger.info("Grabbed %s relevant posts and processing..", len(relevant_posts))
+        sentry_sdk.add_breadcrumb(category="table", message=f"Processing {len(relevant_posts)} posts for {date}")
         extra_prompt = await get_gsheet_prompt(gsheet_id, gsheet_key)
 
         page_size, sem, tasks = 3, asyncio.Semaphore(8), []
@@ -307,6 +309,7 @@ async def scheduled_table(config, client, user, logger, storage, **context):
                     break
 
         try:
+            sentry_sdk.add_breadcrumb(category="schedule", message="Starting scheduled table generation")
             tg_files, caption, _, date = await generate_table(force_new=True, **storage)
             is_album = len(tg_files) > 1
 

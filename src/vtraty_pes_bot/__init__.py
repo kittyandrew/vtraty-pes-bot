@@ -2,7 +2,10 @@ import argparse
 import asyncio
 import logging
 import os
+import platform
 from configparser import ConfigParser
+
+import sentry_sdk
 
 from .new_account import TGSpawner
 from .tmodules import init as tinit
@@ -29,6 +32,14 @@ def main(cpath: str, login=False, user_login=False):
         t_logger.setLevel(logging.WARNING)
         # Main logger that will be used everywhere in the program.
         logger = logging.getLogger("beehive-bee")
+
+        if os.environ.get("SENTRY_DSN"):
+            sentry_sdk.init(
+                dsn=os.environ["SENTRY_DSN"],
+                traces_sample_rate=1.0,
+                environment=os.environ.get("SENTRY_ENVIRONMENT", os.environ.get("HOSTNAME", platform.node())),
+                release=os.environ.get("GIT_SHA") or "dev",
+            )
 
         context = dict(logger=logger, config=config)
         context["storage"] = context  # Self-reference.

@@ -400,6 +400,13 @@
         "url": "https://files.pythonhosted.org/packages/64/8d/0133e4eb4beed9e425d9a98ed6e081a55d195481b7632472be1af08d2f6b/rsa-4.9.1-py3-none-any.whl",
         "version": "4.9.1"
       },
+      "sentry-sdk": {
+        "is_direct": false,
+        "sha256": "fd74e0e281dcda63afff095d23ebcd6e97006102cdc8e78a29f19ecdf796a0de",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/53/39/be412cc86bc6247b8f69e9383d7950711bd86f8d0a4a4b0fe8fad685bc21/sentry_sdk-2.54.0-py2.py3-none-any.whl",
+        "version": "2.54.0"
+      },
       "six": {
         "is_direct": false,
         "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
@@ -688,6 +695,10 @@
         "rsa": [
           "pyasn1"
         ],
+        "sentry-sdk": [
+          "certifi",
+          "urllib3"
+        ],
         "six": [],
         "sniffio": [],
         "telethon": [
@@ -722,5 +733,5 @@
       }
     }
   },
-  "invalidationHash": "26eaf538e52506dca42c6b8583fe32e44749ab7e80b821cc83391572fb2877d4"
+  "invalidationHash": "e8b0bc06097ee0cf9d8698257dbcd8a34cd6b3710ca9e2c19f89296856ecb1e1"
 }

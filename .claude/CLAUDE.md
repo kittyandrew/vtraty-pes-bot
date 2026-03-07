@@ -104,8 +104,14 @@ Dynamically loaded at startup: `__init__.py` imports every `.py` file in the dir
 | File | Purpose |
 |------|---------|
 | `config.ini.sample` | Annotated config template. Sections: `[general]` (owner, sessions, timezone, table settings, gsheet credentials), `[telegram]` (api_id, api_hash, optional token), `[repost]` (source channel), `[guesstimator]` (historical data path). |
-| `.env.sample` | `CONFIG_PATH=config.ini` — used by docker-compose. Actual `.env` also needs `OPENAI_API_KEY` and optionally `LANGCHAIN_API_KEY`. |
+| `.env.sample` | `CONFIG_PATH=config.ini` — used by docker-compose. Actual `.env` also needs `OPENAI_API_KEY`, optionally `LANGCHAIN_API_KEY`, and optionally `SENTRY_DSN` + `SENTRY_ENVIRONMENT`. |
 | `data/` | Runtime data directory (gitignored). Contains session files, config, table cache JSON, logo, font, mutelist. |
+
+### Docs — `docs/`
+
+| File | Purpose |
+|------|---------|
+| `observability.md` | Sentry integration details: what's traced, how to add breadcrumbs, environment/release tracking. |
 
 ## Architecture
 
@@ -147,7 +153,23 @@ The "day" runs **6:00 AM to 6:00 AM** in the configured timezone (typically `Eur
 - **imgkit**: HTML→image (requires wkhtmltopdf binary)
 - **pytz**: timezone handling (not stdlib zoneinfo — uses `normalize()` for DST)
 - **aiocache**: TTL caching for callback rate limiting and channel admin lookups
+- **sentry-sdk**: Error reporting, traces, and breadcrumbs (init in `__init__.py`)
 - **aiohttp**: HTTP client for Google Sheets API, thumbnail downloads
+
+## Observability
+
+This project reports errors, traces, and breadcrumbs to Sentry via `SENTRY_DSN`. See `docs/observability.md` for full details.
+
+**Conventions:**
+- `sentry_sdk.init()` lives in `__init__.py:_main()` — runs once at startup
+- Background tasks and tmodule handlers are covered by Sentry's default exception capture
+- Critical decision points (LLM calls, table generation, video downloads) log breadcrumbs via `sentry_sdk.add_breadcrumb()`
+- Errors propagate to Sentry — don't silently catch and discard exceptions
+- New features should add breadcrumbs on their key code paths
+
+**Environment:** `SENTRY_DSN` must be set. Unset or omit it to disable reporting entirely (SDK becomes a no-op).
+
+<!-- sentry-verified -->
 
 ## No Test Suite
 

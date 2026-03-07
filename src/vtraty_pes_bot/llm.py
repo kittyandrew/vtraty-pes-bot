@@ -3,6 +3,7 @@ import logging
 from contextlib import nullcontext
 from typing import List, Literal, Optional
 
+import sentry_sdk
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
@@ -44,6 +45,7 @@ async def parse_messages(texts: list[str], extra_prompt: str, sem=None) -> list[
         # it's simpler for single-substitution templates and works fine.
         user_message = VEHICLE_EXPORT_USER % "\n\n".join([f"<message>\n{t}\n</message>" for t in texts])
 
+        sentry_sdk.add_breadcrumb(category="llm", message=f"Parsing {len(texts)} messages via OpenAI")
         try:
             res = await llm.ainvoke([SystemMessage(VEHICLE_EXPORT_SYSTEM + system_extra), HumanMessage(user_message)])
             assert isinstance(res, Vehicles), f"Broken structured output? ({res} of type {type(res)})"

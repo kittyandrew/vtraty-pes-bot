@@ -44,7 +44,15 @@
         config = {
           WorkingDir = "/usr/src/app";
           Entrypoint = ["${pkgs.lib.getExe py-vtraty-pes-bot}"];
-          Env = ["SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt" "TMPDIR=/tmp"];
+          # @NOTE: SENTRY_DSN is passed at runtime via .env/docker-compose, not baked in.
+          #   GIT_SHA requires `--impure` to read the env var at build time (nix is pure by default).
+          #   Without --impure, GIT_SHA resolves to "" and release tracking becomes a no-op.
+          Env = [
+            "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+            "TMPDIR=/tmp"
+            "SENTRY_ENVIRONMENT=production"
+            "GIT_SHA=${builtins.getEnv "GIT_SHA"}"
+          ];
         };
         # @NOTE: Created dirs here are not actually `/tmp`, but `tmp`, because we are creating
         #  a dir "in some nix sandbox", which only later will become docker image root (`/`).
