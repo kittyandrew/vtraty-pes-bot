@@ -42,7 +42,6 @@ in {
       });
 
     setuptoolsPkgs = [
-      "aiohttp"
       "moviepy"
       "pyaes"
       "telethon"

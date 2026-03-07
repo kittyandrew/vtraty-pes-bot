@@ -15,12 +15,19 @@
         "url": "https://files.pythonhosted.org/packages/c5/19/5af6804c4cc0fed83f47bff6e413a98a36618e7d40185cd36e69737f3b0e/aiofiles-23.2.1-py3-none-any.whl",
         "version": "23.2.1"
       },
+      "aiohappyeyeballs": {
+        "is_direct": false,
+        "sha256": "f349ba8f4b75cb25c99c5c2d84e997e485204d2902a9597802b0371f09331fb8",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/0f/15/5bf3b99495fb160b63f95972b81750f18f7f4e02ad051373b669d17d44f2/aiohappyeyeballs-2.6.1-py3-none-any.whl",
+        "version": "2.6.1"
+      },
       "aiohttp": {
         "is_direct": false,
-        "sha256": "edea7d15772ceeb29db4aff55e482d4bcfb6ae160ce144f2682de02f6d693551",
+        "sha256": "f76c1e3fe7d7c8afad7ed193f89a292e1999608170dcc9751a7462a87dfd5bc0",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/04/a4/e3679773ea7eb5b37a2c998e25b017cc5349edf6ba2739d1f32855cfb11b/aiohttp-3.9.5.tar.gz",
-        "version": "3.9.5"
+        "url": "https://files.pythonhosted.org/packages/7c/24/75d274228acf35ceeb2850b8ce04de9dd7355ff7a0b49d607ee60c29c518/aiohttp-3.13.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "version": "3.13.3"
       },
       "aiosignal": {
         "is_direct": false,
@@ -150,10 +157,10 @@
       },
       "jinja2": {
         "is_direct": false,
-        "sha256": "bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d",
+        "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/31/80/3a54838c3fb461f6fec263ebf3a3a41771bd05190238de3486aae8540c36/jinja2-3.1.4-py3-none-any.whl",
-        "version": "3.1.4"
+        "url": "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl",
+        "version": "3.1.6"
       },
       "jiter": {
         "is_direct": false,
@@ -500,10 +507,10 @@
       },
       "yt-dlp": {
         "is_direct": false,
-        "sha256": "ebdfda9ffa807f6a26aed7c8f906e5557cd06b4c388dc547df1ec2078631fca8",
+        "sha256": "166c6e68c49ba526474bd400e0129f58aa522c2896204aa73be669c3d2f15e63",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/fd/e1/fa0dd2150b7b1033d917f37067c594160772fa607f311f10d4b881768b36/yt_dlp-2025.6.9-py3-none-any.whl",
-        "version": "2025.6.9"
+        "url": "https://files.pythonhosted.org/packages/7e/a4/8b5cd28ab87aef48ef15e74241befec3445496327db028f34147a9e0f14f/yt_dlp-2026.3.3-py3-none-any.whl",
+        "version": "2026.3.3"
       },
       "zstandard": {
         "is_direct": false,
@@ -517,11 +524,14 @@
       "default": {
         "aiocache": [],
         "aiofiles": [],
+        "aiohappyeyeballs": [],
         "aiohttp": [
+          "aiohappyeyeballs",
           "aiosignal",
           "attrs",
           "frozenlist",
           "multidict",
+          "propcache",
           "yarl"
         ],
         "aiosignal": [
@@ -712,5 +722,5 @@
       }
     }
   },
-  "invalidationHash": "79c53e4eb0597a20c2a74c89f1741440c939fd8a4a785705e4c993688a16af31"
+  "invalidationHash": "26eaf538e52506dca42c6b8583fe32e44749ab7e80b821cc83391572fb2877d4"
 }
