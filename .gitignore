@@ -10,3 +10,7 @@ bot.session
 *.jpg
 *.sh
 *.json
+# Nix lockfiles need to be tracked despite the *.json rule above.
+!lock.*.json
+
+.dream2nix

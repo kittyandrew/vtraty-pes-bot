@@ -39,7 +39,7 @@ https://t.me/odshbr79/410
             "name": "PRESUMABLY MT-LBS APC",
             "ownership": "ru",
             "status": "destroyed",
-            "post_date": "28.11.2024"
+            "post_date": "28.10.2024"
         }
     ]
 }
@@ -162,12 +162,10 @@ VEHICLE_EXPORT_EXTRA = """
 Note that today is {date}. Do not attribute dates to the future.
 
 {extra}
-
-{fmt}
 """
 
 VEHICLE_EXPORT_USER = """
 Here is a couple of messages to extract vehicles from:
 
-{}
+%s
 """

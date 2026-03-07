@@ -4,17 +4,13 @@ import logging
 import os
 from configparser import ConfigParser
 
-from telethon.errors.rpcerrorlist import PeerFloodError, UserDeactivatedBanError
-
-from .browser_manager import BrowserManager
-from .new_account import BadAccountError, TGSpawner
+from .new_account import TGSpawner
 from .tmodules import init as tinit
 
-exists = lambda p: os.path.exists(p)
 
-
-def main(cpath: str, login=False, user_login=False, new_acc: bool = False):
-    loop = asyncio.get_event_loop()
+def main(cpath: str, login=False, user_login=False):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     config = ConfigParser()
     config.read(cpath)
@@ -34,52 +30,38 @@ def main(cpath: str, login=False, user_login=False, new_acc: bool = False):
         # Main logger that will be used everywhere in the program.
         logger = logging.getLogger("beehive-bee")
 
-        browser = BrowserManager(logger=logger)
-        context = dict(logger=logger, config=config, browser=browser)
+        context = dict(logger=logger, config=config)
         context["storage"] = context  # Self-reference.
 
+        api_hash = config.get("telegram", "api_hash")
+        api_id = config.get("telegram", "api_id")
+
         session_path = config.get("general", "session")
-        spawner = TGSpawner(
-            tg_api_hash=config.get("telegram", "api_hash"),
-            tg_api_id=config.get("telegram", "api_id"),
-            sms_api_key=config.get("simservice", "api_key", fallback=""),
-            name=config.get("user", "name", fallback=""),
-            username=config.get("user", "username", fallback=None),
-            # profile_picture = config.get("user", "image"),
-            channels_to_join=config.get("user", "channels", fallback="").split(","),
-            path=session_path,
-            logger=logger,
-        )
+        spawner = TGSpawner(tg_api_hash=api_hash, tg_api_id=api_id, path=session_path, logger=logger)
 
         if login:
             bot_token = config.get("telegram", "token", fallback=None)
             await spawner.login(bot_token=bot_token)
             exit(0)
 
-        if not exists(session_path):
+        if not os.path.exists(session_path):
             print(f"Session file '{session_path}' is missing!")
             exit(1)
 
-        context["client"], _ = await spawner.load_account()
+        context["client"] = await spawner.load_account()
 
         user_session_path = config.get("general", "user_session")
-        spawner = TGSpawner(
-            tg_api_hash=config.get("telegram", "api_hash"),
-            tg_api_id=config.get("telegram", "api_id"),
-            sms_api_key=config.get("simservice", "api_key", fallback=""),
-            path=user_session_path,
-            logger=logger,
-        )
+        spawner = TGSpawner(tg_api_hash=api_hash, tg_api_id=api_id, path=user_session_path, logger=logger)
 
         if user_login:
             await spawner.login()
             exit(0)
 
-        if not exists(user_session_path):
+        if not os.path.exists(user_session_path):
             print(f"Session file '{user_session_path}' is missing!")
             exit(1)
 
-        context["user"], _ = await spawner.load_account()
+        context["user"] = await spawner.load_account()
 
         await tinit(**context)
         logging.info("Initiation completed ...")
@@ -89,14 +71,15 @@ def main(cpath: str, login=False, user_login=False, new_acc: bool = False):
         loop.run_forever()
     finally:
         loop.stop()
+        loop.close()
 
 
-if __name__ == "__main__":
+def main_cli():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
         type=str,
-        default="config.ini",
+        required=True,
         help="Path to the config file.",
     )
     parser.add_argument(
@@ -111,16 +94,10 @@ if __name__ == "__main__":
         default=False,
         help="Instead of starting the application, log your user account in.",
     )
-    parser.add_argument(
-        "--new",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Instead of starting the application, sign up.",
-    )
     args = parser.parse_args()
 
-    if not exists(args.config):
+    if not os.path.exists(args.config):
         print(f"Config file doesn't exist [path '{args.config}']!")
         exit(1)
 
-    main(args.config, args.login, args.user_login, args.new)
+    return main(args.config, args.login, args.user_login)

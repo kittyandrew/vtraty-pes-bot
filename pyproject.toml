@@ -1,0 +1,36 @@
+[project]
+name = "vtraty-pes-bot"
+version = "0.1.0"
+description = "Vtraty utility bot"
+authors = [
+    {name = "kittyandrew",email = "alias.dev@kittymail.me"}
+]
+readme = ".github/README.md"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "telethon-tgcrypto==0.0.3",
+    "telethon==1.35.0",
+    "aiofiles==23.2.1",
+    "aiohttp==3.9.5",
+    "yt-dlp==2025.6.9",
+    "bgutil-ytdlp-pot-provider==1.1.0",
+    "ujson==5.10.0",
+    "numpy>=1.26.0,<3.0.0",
+    "opencv-python>=4.12.0.88,<5.0.0.0",
+    "moviepy==1.0.3",
+    "pytz==2024.1",
+    "cachetools==5.3.3",
+    "langchain>=1.0.5,<2.0.0",
+    "langchain-openai==1.0.2",
+    "imgkit==1.2.3",
+    "jinja2==3.1.4",
+    "markupsafe>=2.0",
+    "aiocache==0.12.3"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project.scripts]
+vtraty-pes-bot = "vtraty_pes_bot:main_cli"

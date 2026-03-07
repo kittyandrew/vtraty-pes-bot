@@ -1,7 +1,8 @@
 import asyncio
+import html
 import tempfile
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from secrets import token_urlsafe
 from typing import Optional
@@ -46,7 +47,7 @@ async def download_thumb(info, output_dir: str, logger) -> Optional[Path]:
     path = Path(output_dir) / "video_thumbnail.jpeg"
 
     # @TODO: We can just convert any thumbnail to jpeg.
-    for thumbnail in info["thumbnails"]:
+    for thumbnail in info.get("thumbnails", []):
         thumb_url = thumbnail.get("url", "")
         if any(thumb_url.split("?")[0].endswith(ext) for ext in (".jpeg", ".jpg")):
             async with aiohttp.ClientSession() as session:
@@ -81,22 +82,24 @@ async def init(client, logger, config, **context):
                     assert str(info.get("resolution")) != "audio only", "Audio-only (e.g. tiktok presentation), can't process!"
 
                     user, video_id = info["uploader"], info["display_id"]
-                    upload_date = datetime.fromtimestamp(info["timestamp"]).strftime("%d %b %Y")
+                    upload_date = datetime.fromtimestamp(info["timestamp"], tz=timezone.utc).strftime("%d %b %Y")
+                    safe_user = html.escape(user)
+                    safe_url = html.escape(url, quote=True)
 
                     if rule == "tiktok":
                         tt_url = f"https://www.tiktok.com/@{urllib.parse.quote(user, safe='')}/video/{video_id}"
-                        message = f"<a href='{tt_url}'>https://www.tiktok.com/@{user}/video/{video_id}</a> ({upload_date})"
+                        message = f'<a href="{tt_url}">https://www.tiktok.com/@{safe_user}/video/{video_id}</a> ({upload_date})'
                     elif description := info.get("description"):
                         # @TODO: We currently skip original description if it's a sub-tweet,
                         #  instead this should be a double quote or sub-quote somehow.
                         if rule == "twitter":
                             if (words := description.split(" "))[-1].startswith("https://t.co/"):
                                 description = " ".join(words[:-1]).replace("  ", "\n\n")
-                        message = f'<blockquote>{description}</blockquote>\n\n- <a href="{url}">{user}</a> ({upload_date})'
+                        message = f'<blockquote>{html.escape(description)}</blockquote>\n\n- <a href="{safe_url}">{safe_user}</a> ({upload_date})'
                     elif title := info.get("title"):
-                        message = f'<blockquote>{title}</blockquote>\n\n- <a href="{url}">{user}</a> ({upload_date})'
+                        message = f'<blockquote>{html.escape(title)}</blockquote>\n\n- <a href="{safe_url}">{safe_user}</a> ({upload_date})'
                     else:
-                        message = f'- <a href="{url}">{user}</a> ({upload_date})'
+                        message = f'- <a href="{safe_url}">{safe_user}</a> ({upload_date})'
 
                     thumb, tg_file = await asyncio.gather(download_thumb(info, out_dir, logger), event.client.upload_file(fp))
 
@@ -111,5 +114,5 @@ async def init(client, logger, config, **context):
                         await event.reply("Failed to download, unprocessable tiktok link..", parse_mode="html")
                     else:
                         logger.error("[%s]: Failed downloading ('%s'), ignoring ...", url, e)
-                except Exception as e:
-                    logger.exception(e)
+                except Exception:
+                    logger.exception("Unexpected error processing video url: '%s'", url)

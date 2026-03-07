@@ -1,20 +1,28 @@
 [general]
 debug = False
-owner = @yourtaghere  # @Required
-session = bot.session
-logo = data/logo.png
-logo_users =  # @Required
-target_id =  # @Required
-target_text =  # @Required
+owner = 123456789  # @Required: Telegram numeric user ID of the bot owner.
+session = bot.session  # Bot account session file path.
+user_session = user.session  # User account session file path (used for reading channel messages).
+target_id =  # @Required: Telegram channel/chat ID where the bot posts tables.
+target_text =  # @Required: Text identifier for the target channel.
+timezone = Europe/Kyiv  # Timezone for scheduling and date calculations.
+logo = data/logo.png  # Path to watermark logo image.
+logo_users =  # @Required: Comma-separated Telegram user IDs allowed to use /watermark.
+
+# Table generation settings
+table_cache_fp = data/table_cache.json  # Path to the JSON cache file for parsed equipment data.
+table_schedule_at = 09:00  # Time (HH:MM) to auto-generate the daily table.
+table_ref_url =  # @Required: URL to the reference table/dictionary (shown as button under tables).
+gsheet_id =  # @Required: Google Sheets spreadsheet ID for vehicle reference data.
+gsheet_key =  # @Required: Google Sheets API key.
 
 [telegram]
-api_id =  # @Required
-api_hash =  # @Required
-# token =  # @Optional: for actual bots.
+api_id =  # @Required: Telegram API application ID.
+api_hash =  # @Required: Telegram API application hash.
+# token =  # @Optional: Bot token (for bot account login via --login).
 
-[simservice]
-api_key =  # @Required [unless .session file provided]
+[repost]
+source_id =  # @Required: Telegram channel ID to read equipment loss posts from.
 
-[user]
-name = Template User
-# image = static/bot_profile.jpg
+[guesstimator]
+# historical =  # @Optional: Path to historical data file for the gatekeep module.

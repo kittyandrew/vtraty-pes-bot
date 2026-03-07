@@ -92,5 +92,6 @@ template = """
 </html>
 """
 
-with open("template.html", "w+") as f:
-    f.write(template)
+if __name__ == "__main__":
+    with open("template.html", "w+") as f:
+        f.write(template)

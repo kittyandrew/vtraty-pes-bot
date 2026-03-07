@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v30
+
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - uses: nicknovitski/nix-develop@v1
+
+      - name: Nix format (alejandra)
+        run: alejandra -c .
+
+      - name: Python format (black)
+        run: black --check --line-length=131 src/
+
+      - name: Python imports (isort)
+        run: isort --check --line-length=131 src/
+
+      - name: Build
+        run: nix build .#vtraty-pes-bot

@@ -2,13 +2,12 @@ import asyncio
 import logging
 import tempfile
 from pathlib import Path
-from pprint import pprint
 from typing import Union
 
 import cv2
-from moviepy.editor import *
+from moviepy.audio.AudioClip import CompositeAudioClip
+from moviepy.video.io.VideoFileClip import VideoFileClip
 from telethon import events
-from telethon.tl.types import ChannelParticipantsAdmins
 
 
 def watermark_video(
@@ -19,7 +18,7 @@ def watermark_video(
     logger=logging,
     heavy_debug: bool = False,
 ):
-    fp_in = str(workdir / filename_in)
+    fp_in = str(filename_in) if Path(filename_in).is_absolute() else str(workdir / filename_in)
     fp_out_intermediate = str(workdir / "silent_output.mp4")
     fp_out = str(workdir / filename_out)
 
@@ -36,7 +35,7 @@ def watermark_video(
     REL_LOGO_SIZE = 2.5 if WIDTH > 800 else 2 if WIDTH > 500 else 1
     REL_PROP = round(WIDTH / REL_LOGO_SIZE / LOGO_W, 2)
     LOGO_H, LOGO_W = int(LOGO_H * REL_PROP), int(LOGO_W * REL_PROP)
-    print(REL_LOGO_SIZE, REL_PROP, LOGO_H, LOGO_W)
+    logger.debug("Logo sizing: REL_LOGO_SIZE=%s REL_PROP=%s LOGO_H=%s LOGO_W=%s", REL_LOGO_SIZE, REL_PROP, LOGO_H, LOGO_W)
     logo = cv2.resize(original_logo, (LOGO_W, LOGO_H), interpolation=cv2.INTER_CUBIC)
 
     x, y, dx, dy = (WIDTH - LOGO_W) // 2, (HEIGHT - LOGO_H) // 2, WIDTH // 100, HEIGHT // 100
@@ -88,12 +87,16 @@ def watermark_video(
 
     in_video = VideoFileClip(fp_in)
     out_video = VideoFileClip(fp_out_intermediate)
-    if in_video.audio:
-        out_video.audio = CompositeAudioClip([in_video.audio])
-        logger.info("Done processing audio for video '%s' ('%s')! Finished.", fp_in, fp_out)
-    else:
-        logger.info("No audio detected! Finished '%s' ('%s').", fp_in, fp_out)
-    out_video.write_videofile(fp_out)
+    try:
+        if in_video.audio:
+            out_video.audio = CompositeAudioClip([in_video.audio])
+            logger.info("Done processing audio for video '%s' ('%s')! Finished.", fp_in, fp_out)
+        else:
+            logger.info("No audio detected! Finished '%s' ('%s').", fp_in, fp_out)
+        out_video.write_videofile(fp_out)
+    finally:
+        out_video.close()
+        in_video.close()
     return fp_out
 
 
@@ -105,7 +108,7 @@ def watermark_image(
     logger=logging,
     heavy_debug: bool = True,
 ):
-    fp_in = str(workdir / filename_in)
+    fp_in = str(filename_in) if Path(filename_in).is_absolute() else str(workdir / filename_in)
     fp_out = str(workdir / filename_out)
 
     source = cv2.imread(fp_in, cv2.IMREAD_UNCHANGED)
@@ -141,7 +144,10 @@ def watermark_image(
 
 
 async def init(client, logger, config, **context):
-    logo_admins = [int(la) for la in config.get("general", "logo_users").split(",")]
+    logo_users_raw = config.get("general", "logo_users").strip()
+    if not logo_users_raw:
+        logger.warning("Watermark disabled: no user IDs configured in [general] logo_users.")
+    logo_admins = [int(la.strip()) for la in logo_users_raw.split(",") if la.strip()] if logo_users_raw else []
     logo_fp = config.get("general", "logo")
     # target_id = config.getint("general", "target_id")
 
@@ -193,7 +199,7 @@ async def init(client, logger, config, **context):
                 force_document = True
                 fp_out = watermark_video(workdir, fp_in, output_filename, logo_fp)
             else:
-                raise
+                raise ValueError("Unexpected media type")
 
             if pe:
                 await pe.edit("Uploading file...")

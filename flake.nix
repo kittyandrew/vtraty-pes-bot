@@ -1,73 +1,98 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    dream2nix.url = "github:nix-community/dream2nix";
   };
   outputs = {
     nixpkgs,
-    flake-utils,
+    dream2nix,
     ...
-  }:
-    flake-utils.lib.eachDefaultSystem (
-      system: let
-        pkgs = import nixpkgs {inherit system;};
-        pythonCustom = pkgs.python3.withPackages (ps:
-          with ps; [
-            # Setup utils for packages and builds.
-            pip
-            wheel
-            packaging
-            setuptools
-            # @TODO: Replace this with nix shell stuff.
-            virtualenv # Local pythonic dev-env management.
-            # Static analysis and formatting packages.
-            flake8
-            mypy
-            black
-            isort
-          ]);
-        libs = with pkgs; [
-          stdenv.cc.cc
-          zlib
-          glib
-          libGL
+  }: let
+    systems = ["x86_64-linux" "aarch64-linux"];
+    forEachSystem = fn:
+      nixpkgs.lib.genAttrs systems (system:
+        fn {
+          pkgs = nixpkgs.legacyPackages.${system};
+        });
+  in {
+    packages = forEachSystem ({pkgs}: let
+      py-vtraty-pes-bot = dream2nix.lib.evalModules {
+        packageSets.nixpkgs = pkgs;
+        modules = [
+          ./default.nix
+          {
+            paths.projectRoot = ./.;
+            paths.projectRootFile = "flake.nix";
+            paths.package = ./.;
+          }
         ];
-      in {
-        devShell = pkgs.mkShell {
-          buildInputs = [
-            # Installing our custom python with pre-installed packages.
-            pythonCustom
+      };
+    in {
+      vtraty-pes-bot = py-vtraty-pes-bot;
+      docker-image = pkgs.dockerTools.buildImage {
+        name = "vtraty-pes-bot";
+        tag = "latest";
+        copyToRoot = pkgs.buildEnv {
+          name = "image-root";
+          paths = [
             pkgs.wkhtmltopdf
+            pkgs.which # imgkit depends on this to find wkhtmltoimage ...
             pkgs.ffmpeg
           ];
-          # Upon installation we need to do additional configurations.
-          shellHook = ''
-            # Some python packages do RUNTIME DL loading from the provided paths, sigh.
-            export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath libs}
-
-            # We want to install additional requirements into a virtual env [for now].
-            if [[ -f requirements.txt ]]; then
-              if [[ -d .venv ]]; then
-                echo "Verifying virtual environment is setup with all packages.."
-                # @NOTE: In happy-case it is much cleaner to suppress the output. Is it bad? IDK.
-                python -m virtualenv -q .venv && source .venv/bin/activate
-                python -m pip install -qr requirements.txt
-              else
-                # There is no point in echo-ing here, normal pip log is super verbose.
-                python -m virtualenv .venv && source .venv/bin/activate
-                python -m pip install -r requirements.txt
-              fi
-            fi
-
-            pyfmt() {
-              black --line-length=131 $@
-              isort --line-length=131 $@
-              # flake8 $@
-            }
-
-            echo -e "\nWelcome to the shell :)\n"
-          '';
+          pathsToLink = ["/bin"];
         };
-      }
-    );
+        config = {
+          WorkingDir = "/usr/src/app";
+          Entrypoint = ["${pkgs.lib.getExe py-vtraty-pes-bot}"];
+          Env = ["SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt" "TMPDIR=/tmp"];
+        };
+        # @NOTE: Created dirs here are not actually `/tmp`, but `tmp`, because we are creating
+        #  a dir "in some nix sandbox", which only later will become docker image root (`/`).
+        extraCommands = ''
+          mkdir -m 0777 tmp  # creating /tmp since seemingly `wkhtmltoimage` requires it.
+          mkdir -m 0777 .cache  # creating /.cache since seemingly `wkhtmltoimage` requires it.
+        '';
+      };
+    });
+
+    devShells = forEachSystem ({pkgs}: let
+      libs = with pkgs; [
+        stdenv.cc.cc
+        zlib
+        glib
+        libGL
+      ];
+      py-vtraty-pes-bot = dream2nix.lib.evalModules {
+        packageSets.nixpkgs = pkgs;
+        modules = [
+          ./default.nix
+          {
+            paths.projectRoot = ./.;
+            paths.projectRootFile = "flake.nix";
+            paths.package = ./.;
+          }
+        ];
+      };
+    in {
+      default = pkgs.mkShell {
+        inputsFrom = [py-vtraty-pes-bot.devShell];
+        buildInputs = [
+          py-vtraty-pes-bot.config.deps.python.pkgs.flake8
+          py-vtraty-pes-bot.config.deps.python.pkgs.isort
+          py-vtraty-pes-bot.config.deps.python.pkgs.black
+          pkgs.alejandra
+          pkgs.wkhtmltopdf
+          pkgs.ffmpeg
+          pkgs.poetry
+        ];
+        # Upon installation we need to do additional configurations.
+        shellHook = ''
+          # Some python packages do RUNTIME DL loading from the provided paths, sigh.
+          export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath libs}
+
+          echo -e "\nWelcome to the shell :)\n"
+        '';
+      };
+    });
+  };
 }
