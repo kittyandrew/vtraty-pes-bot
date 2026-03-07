@@ -41,12 +41,12 @@ isort --check --line-length=131 src/
 
 # Nix
 nix shell nixpkgs#alejandra -c alejandra -c .
-nix shell nixpkgs#deadnix -c deadnix flake.nix default.nix
+# --no-lambda-arg: default.nix's cleanSourceWith filter requires a `type` arg by signature that we don't use.
+nix shell nixpkgs#deadnix -c deadnix --no-lambda-arg flake.nix default.nix
 nix flake check
 ```
 
 Known noise to ignore:
-- `deadnix`: unused `type` lambda arg in `default.nix:20` — required by `cleanSourceWith` filter signature.
 - `nix flake check`: `meta.mainProgram` warning from dream2nix — not actionable.
 
 ## Preferences
@@ -97,7 +97,7 @@ Dynamically loaded at startup: `__init__.py` imports every `.py` file in the dir
 
 | File | Trigger | What it does |
 |------|---------|-------------|
-| `ci.yml` | Push to master, PRs | Nix format check (alejandra), Python format (black), import order (isort), `nix build` |
+| `ci.yml` | Push to master, PRs | Nix format (alejandra), Nix lint (deadnix --no-lambda-arg), Python format (black), import order (isort), `nix build` |
 
 ### Config & Data
 

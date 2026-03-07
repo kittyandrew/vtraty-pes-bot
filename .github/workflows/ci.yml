@@ -20,6 +20,12 @@ jobs:
       - name: Nix format (alejandra)
         run: alejandra -c .
 
+      - name: Nix lint (deadnix)
+        # --no-lambda-arg: suppresses unused lambda arg warnings — needed because
+        # default.nix's cleanSourceWith filter requires a `type` arg by signature
+        # even though we don't use it.
+        run: nix shell nixpkgs#deadnix -c deadnix --no-lambda-arg flake.nix default.nix
+
       - name: Python format (black)
         run: black --check --line-length=131 src/
 
