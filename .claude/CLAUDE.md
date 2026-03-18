@@ -78,7 +78,7 @@ Dynamically loaded at startup: `__init__.py` imports every `.py` file in the dir
 |------|---------|
 | `__init__.py` | Module loader — dynamic import + `init()` dispatch. |
 | `table.py` | **Core module.** Daily scheduled table generation, `/table` command, inline keyboard regeneration callbacks. Key functions: `generate_table()`, `generate_cache_for_date()`, `scheduled_table()` (background task), `convert_counter_into_lines()`. Uses a 6am-to-6am day boundary. Weekly summary generated on Mondays via `asyncio.gather` over 7 days. Callback button data format: `v0\|channel_id\|date\|msg_id1,msg_id2`. |
-| `downloader.py` | Multi-platform shortform video downloader (Instagram, Facebook, YouTube Shorts, TikTok, X/Twitter). Uses yt-dlp. Validates URLs against `MATCH_RULES`, downloads video + thumbnail, posts with attribution. |
+| `downloader.py` | Multi-platform shortform video downloader (Instagram, Facebook, YouTube Shorts, TikTok, X/Twitter, FunnyJunk). Uses yt-dlp. Validates URLs against `MATCH_RULES`, downloads video + thumbnail, posts with attribution. FunnyJunk uses `match_subdomains` for CDN domains and `ffprobe` fallback for video metadata. |
 | `gatekeep.py` | New-user gatekeeper for a target chat. Sends join message, estimates account age via polynomial interpolation on historical Telegram ID data ("guesstimator"), reports user info to owner, auto-kicks after 10min if user doesn't post. |
 | `watermark.py` | `/watermark` command — overlays a bouncing logo on videos (OpenCV frame-by-frame + moviepy for audio) or a centered logo on images. Restricted to configured user IDs. |
 

@@ -1,5 +1,7 @@
 import asyncio
 import html
+import json
+import subprocess
 import tempfile
 import urllib.parse
 from datetime import datetime, timezone
@@ -20,6 +22,7 @@ MATCH_RULES = {
     "youtube": {"domains": ["youtube.com"], "path": lambda p: str(p).startswith("/shorts/")},
     "twitter": {"domains": ["x.com"], "path": lambda p: len(str(p).strip("/").split("/")) > 1},
     "tiktok": {"domains": ["tiktok.com", "vm.tiktok.com"], "path": lambda p: bool(p)},
+    "funnyjunk": {"domains": ["funnyjunk.com"], "path": lambda p: bool(p), "match_subdomains": True},
 }
 
 
@@ -27,10 +30,14 @@ def validate_url(source: str, rules=MATCH_RULES):
     parsed = urllib.parse.urlparse(source if source.startswith("http") else f"http://{source}")
     assert parsed.hostname, f"Somehow url without .hostname: '{source}'"
 
+    hostname = parsed.hostname.removeprefix("www.")
     for rname, config in rules.items():
-        if parsed.hostname.removeprefix("www.") in config["domains"]:
-            if config["path"](parsed.path):
-                return rname
+        if config.get("match_subdomains"):
+            matched = any(hostname == d or hostname.endswith("." + d) for d in config["domains"])
+        else:
+            matched = hostname in config["domains"]
+        if matched and config["path"](parsed.path):
+            return rname
     return False
 
 
@@ -42,6 +49,38 @@ def download_by_url(url: str, output_dir: str):
     }
     with yt_dlp.YoutubeDL(yt_dlp_config) as ydl:
         return path, ydl.extract_info(url, download=True)
+
+
+def ffprobe_video(path: Path, logger) -> dict:
+    """Probe a video file for duration, width, and height via ffprobe."""
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", "-select_streams", "v:0", str(path)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            logger.warning("ffprobe failed (exit %d) for '%s': %s", result.returncode, path, result.stderr)
+            return {}
+        streams = json.loads(result.stdout).get("streams", [])
+        if not streams:
+            return {}
+        s = streams[0]
+        out = {}
+        if "width" in s and "height" in s:
+            out["width"] = int(s["width"])
+            out["height"] = int(s["height"])
+        if "duration" in s:
+            out["duration"] = round(float(s["duration"]))
+        elif "tags" in s and "DURATION" in s["tags"]:
+            # @NOTE: Some containers store duration in tags as HH:MM:SS.microseconds.
+            parts = s["tags"]["DURATION"].split(":")
+            out["duration"] = round(float(parts[0]) * 3600 + float(parts[1]) * 60 + float(parts[2]))
+        return out
+    except Exception:
+        logger.exception("ffprobe_video failed for '%s'", path)
+        return {}
 
 
 async def download_thumb(info, output_dir: str, logger) -> Optional[Path]:
@@ -80,33 +119,56 @@ async def init(client, logger, config, **context):
                 try:
                     fp, info = await asyncio.to_thread(download_by_url, url, out_dir)
                     assert info is not None, f"Something real broken (info={info})!"
-                    assert info.get("duration") is not None, f"GIF or livestream... maybe support GIFs?"
-                    assert str(info.get("resolution")) != "audio only", "Audio-only (e.g. tiktok presentation), can't process!"
+                    # @NOTE: Direct file downloads (e.g. FunnyJunk CDN) lack duration/resolution
+                    # and uploader metadata from yt-dlp, so we relax validation and use fallbacks.
+                    is_direct = bool(info.get("direct"))
+                    if not is_direct:
+                        assert info.get("duration") is not None, f"GIF or livestream... maybe support GIFs?"
+                        assert str(info.get("resolution")) != "audio only", "Audio-only (e.g. tiktok presentation), can't process!"
 
-                    user, video_id = info["uploader"], info["display_id"]
-                    upload_date = datetime.fromtimestamp(info["timestamp"], tz=timezone.utc).strftime("%d %b %Y")
+                    user = info.get("uploader") or urllib.parse.urlparse(url).hostname.removeprefix("www.")
+                    video_id = info.get("display_id", "")
+                    if info.get("timestamp") and not is_direct:
+                        upload_date = datetime.fromtimestamp(info["timestamp"], tz=timezone.utc).strftime("%d %b %Y")
+                    else:
+                        upload_date = None
                     safe_user = html.escape(user)
                     safe_url = html.escape(url, quote=True)
+                    date_str = f" ({upload_date})" if upload_date else ""
 
-                    if rule == "tiktok":
+                    if is_direct:
+                        message = f'- <a href="{safe_url}">{safe_user}</a>'
+                    elif rule == "tiktok":
                         tt_url = f"https://www.tiktok.com/@{urllib.parse.quote(user, safe='')}/video/{video_id}"
-                        message = f'<a href="{tt_url}">https://www.tiktok.com/@{safe_user}/video/{video_id}</a> ({upload_date})'
+                        message = f'<a href="{tt_url}">https://www.tiktok.com/@{safe_user}/video/{video_id}</a>{date_str}'
                     elif description := info.get("description"):
                         # @TODO: We currently skip original description if it's a sub-tweet,
                         #  instead this should be a double quote or sub-quote somehow.
                         if rule == "twitter":
                             if (words := description.split(" "))[-1].startswith("https://t.co/"):
                                 description = " ".join(words[:-1]).replace("  ", "\n\n")
-                        message = f'<blockquote>{html.escape(description)}</blockquote>\n\n- <a href="{safe_url}">{safe_user}</a> ({upload_date})'
+                        message = f'<blockquote>{html.escape(description)}</blockquote>\n\n- <a href="{safe_url}">{safe_user}</a>{date_str}'
                     elif title := info.get("title"):
-                        message = f'<blockquote>{html.escape(title)}</blockquote>\n\n- <a href="{safe_url}">{safe_user}</a> ({upload_date})'
+                        message = (
+                            f'<blockquote>{html.escape(title)}</blockquote>\n\n- <a href="{safe_url}">{safe_user}</a>{date_str}'
+                        )
                     else:
-                        message = f'- <a href="{safe_url}">{safe_user}</a> ({upload_date})'
+                        message = f'- <a href="{safe_url}">{safe_user}</a>{date_str}'
 
                     thumb, tg_file = await asyncio.gather(download_thumb(info, out_dir, logger), event.client.upload_file(fp))
 
-                    attributes = DocumentAttributeVideo(info["duration"], info["width"], info["height"], supports_streaming=True)
-                    await event.reply(message, file=tg_file, attributes=[attributes], thumb=thumb, parse_mode="html")
+                    duration, width, height = info.get("duration"), info.get("width"), info.get("height")
+                    if not (duration and width and height):
+                        sentry_sdk.add_breadcrumb(category="downloader", message="Falling back to ffprobe for video metadata")
+                        probe = await asyncio.to_thread(ffprobe_video, fp, logger)
+                        duration = duration or probe.get("duration")
+                        width = width or probe.get("width")
+                        height = height or probe.get("height")
+                    if duration and width and height:
+                        attrs = [DocumentAttributeVideo(duration, width, height, supports_streaming=True)]
+                    else:
+                        attrs = []
+                    await event.reply(message, file=tg_file, attributes=attrs, thumb=thumb, parse_mode="html")
                     logger.info("Uploaded video for shortform video url: '%s' ...", url)
                 except (yt_dlp.utils.DownloadError, AssertionError) as e:
                     if rule == "twitter":
