@@ -5,8 +5,7 @@ from pathlib import Path
 from typing import Union
 
 import cv2
-from moviepy.audio.AudioClip import CompositeAudioClip
-from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy import CompositeAudioClip, VideoFileClip
 from telethon import events
 
 
@@ -89,7 +88,7 @@ def watermark_video(
     out_video = VideoFileClip(fp_out_intermediate)
     try:
         if in_video.audio:
-            out_video.audio = CompositeAudioClip([in_video.audio])
+            out_video = out_video.with_audio(CompositeAudioClip([in_video.audio]))
             logger.info("Done processing audio for video '%s' ('%s')! Finished.", fp_in, fp_out)
         else:
             logger.info("No audio detected! Finished '%s' ('%s').", fp_in, fp_out)

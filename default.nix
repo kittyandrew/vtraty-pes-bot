@@ -42,12 +42,9 @@ in {
       });
 
     setuptoolsPkgs = [
-      "moviepy"
       "pyaes"
-      "telethon"
       "tgcrypto"
     ];
-    flitPkgs = ["click"];
   in {
     requirementsList =
       pyproject.build-system.requires or []
@@ -55,8 +52,6 @@ in {
     flattenDependencies = true;
 
     # compose the final overrides set for packages by unioning groups
-    overrides =
-      mkOverridesFor config.deps.python.pkgs.setuptools setuptoolsPkgs
-      // mkOverridesFor config.deps.python.pkgs.flit-core flitPkgs;
+    overrides = mkOverridesFor config.deps.python.pkgs.setuptools setuptoolsPkgs;
   };
 }
