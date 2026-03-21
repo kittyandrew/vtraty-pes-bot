@@ -20,7 +20,7 @@ MATCH_RULES = {
     "instagram": {"domains": ["instagram.com", "facebook.com"], "path": lambda p: "/reel/" in str(p)},
     "facebook": {"domains": ["facebook.com"], "path": lambda p: "/share/v/" in str(p)},
     "youtube": {"domains": ["youtube.com"], "path": lambda p: str(p).startswith("/shorts/")},
-    "twitter": {"domains": ["x.com"], "path": lambda p: len(str(p).strip("/").split("/")) > 1},
+    "twitter": {"domains": ["x.com", "fixupx.com", "fxtwitter.com"], "path": lambda p: len(str(p).strip("/").split("/")) > 1},
     "tiktok": {"domains": ["tiktok.com", "vm.tiktok.com"], "path": lambda p: bool(p)},
     "funnyjunk": {"domains": ["funnyjunk.com"], "path": lambda p: bool(p), "match_subdomains": True},
 }
@@ -171,7 +171,7 @@ async def init(client, logger, config, **context):
                     await event.reply(message, file=tg_file, attributes=attrs, thumb=thumb, parse_mode="html")
                     logger.info("Uploaded video for shortform video url: '%s' ...", url)
                 except (yt_dlp.utils.DownloadError, AssertionError) as e:
-                    if rule == "twitter":
+                    if rule == "twitter" and urllib.parse.urlparse(url).hostname.removeprefix("www.") == "x.com":
                         logger.warning("[%s]: Failed downloading ('%s'), just replacing url ...", url, e)
                         await event.reply(url.replace("x.com/", "fxtwitter.com/"))
                     elif rule == "tiktok":
