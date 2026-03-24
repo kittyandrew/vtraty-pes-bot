@@ -21,7 +21,7 @@ MATCH_RULES = {
     "facebook": {"domains": ["facebook.com"], "path": lambda p: "/share/v/" in str(p)},
     "youtube": {"domains": ["youtube.com"], "path": lambda p: str(p).startswith("/shorts/")},
     "twitter": {"domains": ["x.com", "fixupx.com", "fxtwitter.com"], "path": lambda p: len(str(p).strip("/").split("/")) > 1},
-    "tiktok": {"domains": ["tiktok.com", "vm.tiktok.com"], "path": lambda p: bool(p)},
+    "tiktok": {"domains": ["tiktok.com"], "path": lambda p: bool(p), "match_subdomains": True},
     "funnyjunk": {"domains": ["funnyjunk.com"], "path": lambda p: bool(p), "match_subdomains": True},
 }
 
