@@ -14,7 +14,7 @@ import aiohttp
 import sentry_sdk
 import yt_dlp
 from telethon import events
-from telethon.tl.types import DocumentAttributeVideo, MessageEntityUrl
+from telethon.tl.types import DocumentAttributeVideo, MessageEntityUrl, MessageMediaWebPage
 
 MATCH_RULES = {
     "instagram": {"domains": ["instagram.com", "facebook.com"], "path": lambda p: "/reel/" in str(p)},
@@ -22,7 +22,12 @@ MATCH_RULES = {
     "youtube": {"domains": ["youtube.com"], "path": lambda p: str(p).startswith("/shorts/")},
     "twitter": {"domains": ["x.com", "fixupx.com", "fxtwitter.com"], "path": lambda p: len(str(p).strip("/").split("/")) > 1},
     "tiktok": {"domains": ["tiktok.com"], "path": lambda p: bool(p), "match_subdomains": True},
-    "funnyjunk": {"domains": ["funnyjunk.com"], "path": lambda p: bool(p), "match_subdomains": True},
+    "funnyjunk": {
+        "domains": ["funnyjunk.com"],
+        "path": lambda p: bool(p) and not p.lower().endswith(".gif"),
+        "match_subdomains": True,
+        "skip_if_previewed": True,
+    },
 }
 
 
@@ -111,6 +116,11 @@ async def init(client, logger, config, **context):
                 continue
 
             if not (rule := validate_url(url := event.raw_text[item.offset : item.offset + item.length])):
+                continue
+
+            # @NOTE: Some platforms (e.g. FunnyJunk direct links) only need downloading when
+            # Telegram can't generate its own preview. skip_if_previewed enables this per-rule.
+            if MATCH_RULES[rule].get("skip_if_previewed") and isinstance(event.media, MessageMediaWebPage):
                 continue
 
             logger.info("Processing url [detected shortform video]: '%s' ...", url)
