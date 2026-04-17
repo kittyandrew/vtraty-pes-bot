@@ -21,7 +21,7 @@ dependencies = [
     "pytz==2026.1.post1",
     "cachetools==7.0.5",
     "langchain>=1.0.5,<2.0.0",
-    "langchain-openai==1.1.11",
+    "langchain-openai==1.1.14",
     "imgkit==1.2.3",
     "jinja2>=3.1.6,<4.0.0",
     "markupsafe>=2.0",
