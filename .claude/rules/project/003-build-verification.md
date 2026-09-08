@@ -44,10 +44,10 @@ nix develop --command uv run mypy admin/src common/src pes/src
 
 # Nix.
 nix develop --command alejandra -c .
-nix develop --command deadnix flake.nix nix/shared/default.nix
-nix flake show --all-systems --option substitute false
-nix build .#admin .#pes .#admin-image .#pes-image --no-link --option substitute false
-nix flake check --all-systems --option substitute false
+nix develop --command deadnix --fail flake.nix nix/shared/default.nix
+nix flake show --all-systems
+nix build .#admin .#pes .#admin-image .#pes-image --no-link
+nix flake check --all-systems
 
 # CLI smoke tests.
 nix run .#pes -- --help
@@ -65,4 +65,4 @@ nix develop --command zizmor .github/workflows
 
 GitHub Actions keep token-free quality gates in a separate job from mainline build/cache work. Keep actions SHA-pinned, `permissions: contents: read`, and `persist-credentials: false` on checkout. The Attic token must stay in a `main`-push-only job that depends on quality.
 
-No PR trigger unless explicitly requested.
+Quality gates run on PRs and main pushes; package/image builds and cache pushes run only on main pushes.

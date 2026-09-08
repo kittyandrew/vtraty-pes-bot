@@ -1,10 +1,12 @@
 name: ci
 
-# Quality gates, Nix package/image builds, and Attic cache push run only for
-# main pushes. The Attic push token is exposed only after quality passes.
+# Quality gates run on PRs and main pushes. Nix package/image builds and Attic
+# cache push run only on main pushes, with the token exposed after quality passes.
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
 
 permissions:
@@ -40,7 +42,7 @@ jobs:
         run: nix develop --command alejandra -c .
 
       - name: Nix lint (deadnix)
-        run: nix develop --command deadnix flake.nix
+        run: nix develop --command deadnix --fail flake.nix nix/shared/default.nix
 
       - name: Flake check
         run: nix flake check --all-systems
@@ -58,7 +60,7 @@ jobs:
     name: nix check + build + push
     runs-on: ubuntu-latest
     needs: quality
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
